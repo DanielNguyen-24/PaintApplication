@@ -30,7 +30,9 @@ namespace PaintApplication.Models
         Pencil,
         Eraser,
         Freeform,
+        Star,
         Freedraw
+        
     }
 }
 
