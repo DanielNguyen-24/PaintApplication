@@ -1,0 +1,11 @@
+﻿<Application x:Class="PaintApplication.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:PaintApplication"
+             xmlns:conv="clr-namespace:PaintApplication.Converters"
+             StartupUri="Views/MainWindow.xaml">
+    <Application.Resources>
+        <conv:ColorToBrushConverter x:Key="ColorToBrushConverter"/>
+        <conv:EnumToBooleanConverter x:Key="EnumToBooleanConverter"/>
+    </Application.Resources>
+</Application>

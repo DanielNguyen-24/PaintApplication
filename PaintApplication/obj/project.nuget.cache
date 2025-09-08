@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "KwZzBcTNc9o=",
+  "success": true,
+  "projectFilePath": "D:\\Code\\C#\\Application Development Technology\\PaintApplication\\PaintApplication\\PaintApplication.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\nqdat\\.nuget\\packages\\extended.wpf.toolkit\\4.7.25104.5739\\extended.wpf.toolkit.4.7.25104.5739.nupkg.sha512"
+  ],
+  "logs": []
+}
