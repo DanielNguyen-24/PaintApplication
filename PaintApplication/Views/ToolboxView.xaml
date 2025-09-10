@@ -1,65 +1,73 @@
 ﻿<UserControl x:Class="PaintApplication.Views.ToolboxView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit">
+             xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+             xmlns:ribbon="clr-namespace:System.Windows.Controls.Ribbon;assembly=System.Windows.Controls.Ribbon">
 
-    <Border Background="#2b2b2b" Padding="1">
-        <StackPanel Orientation="Horizontal" VerticalAlignment="Top">
+    <StackPanel>
+        <Ribbon Background="#FF202020" Foreground="White" Height="142">
+            <Ribbon.ApplicationMenu>
+                <RibbonApplicationMenu Visibility="Collapsed"></RibbonApplicationMenu>
+            </Ribbon.ApplicationMenu>
 
-            <!-- Pencil -->
-            <ToggleButton Content="✏" Height="30" Width="40"
-              IsChecked="{Binding SelectedTool, 
-                                  Converter={StaticResource EnumToBooleanConverter}, 
-                                  ConverterParameter=Pencil, Mode=TwoWay}" />
+            <RibbonTab Header="Toolbar" Foreground="White" Background="#FF202020">
+            <!-- Selection -->
+                <RibbonGroup Header="Selection" Background="#FF272727">
+                    <RibbonButton Label="Select"/>
+                </RibbonGroup>
 
-            <ToggleButton Content="🩹" Margin="4" Height="30" Width="40"
-              IsChecked="{Binding SelectedTool, 
-                                  Converter={StaticResource EnumToBooleanConverter}, 
-                                  ConverterParameter=Eraser, Mode=TwoWay}" />
+                <!-- Image -->
+                <RibbonGroup Header="Image" Background="#FF272727" Width="100">
+                    <RibbonButton Label="Crop"/>
+                    <RibbonButton Label="Rotate"/>
+                </RibbonGroup>
 
-            <ToggleButton Content="—" Margin="4" Height="30" Width="40"
-              IsChecked="{Binding SelectedTool, 
-                                  Converter={StaticResource EnumToBooleanConverter}, 
-                                  ConverterParameter=Line, Mode=TwoWay}" />
+                <!-- Tools -->
+                <RibbonGroup Header="Tools" Background="#FF272727" Width="200">
+                    <RibbonToggleButton Label="Pencil"/>
+                    <RibbonToggleButton Label="Eraser"/>
+                    <RibbonToggleButton Label="Fill"/>
+                    <RibbonToggleButton Label="Text"/>
+                    <RibbonToggleButton Label="Magnifier"/>
+                </RibbonGroup>
 
-            <ToggleButton Content="▭" Margin="4" Height="30" Width="40"
-              IsChecked="{Binding SelectedTool, 
-                                  Converter={StaticResource EnumToBooleanConverter}, 
-                                  ConverterParameter=Rectangle, Mode=TwoWay}" />
+                <!-- Brushes -->
+                <RibbonGroup Header="Brushes" Background="#FF272727">
+                    <RibbonButton Label="Brush"/>
+                </RibbonGroup>
 
-            <ToggleButton Content="◯" Margin="4" Height="30" Width="40"
-              IsChecked="{Binding SelectedTool, 
-                                  Converter={StaticResource EnumToBooleanConverter}, 
-                                  ConverterParameter=Ellipse, Mode=TwoWay}" />
+                <!-- Shapes -->
+                <RibbonGroup Header="Shapes" Background="#FF272727" Width="200">
+                    <!-- Use a standard ItemsControl for shape selection to avoid XDG0066 error -->
+                    <ItemsControl>
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <Button Content="◯" Width="30" Margin="2"/>
+                        <!-- Add more shape buttons as needed -->
+                    </ItemsControl>
+                </RibbonGroup>
 
-            <!-- Color Button + Popup -->
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0">
-                <!-- Nút mở color picker -->
-                <Button x:Name="ColorButton" Content="🎨" Width="40" Height="30" Click="ColorButton_Click"/>
 
-                <!-- Ô hiển thị màu hiện tại -->
-                <Rectangle Width="30" Height="30" Stroke="White" StrokeThickness="1"
-                           Fill="{Binding SelectedColor, Converter={StaticResource ColorToBrushConverter}}"
-                           Margin="4,0"/>
+                <!-- Colors -->
+                <RibbonGroup Header="Colors" Background="#FF272727" Width="200">
+                    <StackPanel Orientation="Horizontal">
+                        <!-- màu sắc -->
+                    </StackPanel>
+                </RibbonGroup>
 
-                <!-- Popup chứa ColorPicker -->
-                <Popup x:Name="ColorPopup" PlacementTarget="{Binding ElementName=ColorButton}" 
-                       Placement="Bottom" StaysOpen="False">
-                    <Border BorderBrush="Gray" BorderThickness="1" Background="White">
-                        <xctk:ColorPicker SelectedColor="{Binding SelectedColor, Mode=TwoWay}" 
-                                          Width="220" Height="220"
-                                          UsingAlphaChannel="False"
-                                          DisplayColorAndName="False"
-                                          />
-                    </Border>
-                </Popup>
-            </StackPanel>
+                <!-- Copilot -->
+                <RibbonGroup Header="Copilot" Background="#FF272727">
+                    <RibbonButton Label="AI"/>
+                </RibbonGroup>
 
-            <!-- Thickness slider -->
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0">
-                <TextBlock Text="Thickness" VerticalAlignment="Center" Foreground="White" Margin="4"/>
-                <Slider Width="120" Minimum="1" Maximum="30" Value="{Binding Thickness}" />
-            </StackPanel>
-        </StackPanel>
-    </Border>
+                <!-- Layers -->
+                <RibbonGroup Header="Layers" Background="#FF272727">
+                    <RibbonButton Label="Layers"/>
+                </RibbonGroup>
+            </RibbonTab>
+        </Ribbon>
+    </StackPanel>
 </UserControl>

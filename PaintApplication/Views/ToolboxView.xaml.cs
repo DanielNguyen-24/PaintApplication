@@ -23,7 +23,7 @@ namespace PaintApplication.Views
         
         private void ColorButton_Click(object sender, RoutedEventArgs e)
         {
-            ColorPopup.IsOpen = true;
+            //ColorPopup.IsOpen = true;
         }
 
     }
