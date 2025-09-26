@@ -1,8 +1,8 @@
-﻿using PaintApplication.Helpers;
-using PaintApplication.Models;
+﻿using System.Collections.ObjectModel;
+using PaintApplication.Helpers;
 using PaintApplication.Services;
-using System.Collections.ObjectModel;
 using System.Windows.Input;
+using PaintApplication.Models;
 
 namespace PaintApplication.ViewModels
 {
@@ -12,9 +12,15 @@ namespace PaintApplication.ViewModels
         public CanvasViewModel Canvas { get; }
         public ObservableCollection<LayerViewModel> Layers { get; } = new();
 
-        private readonly FileService _fileService = new();
-        private readonly UndoRedoService _undoRedo = new();
+        // Zoom
+        private double _zoomLevel = 100;
+        public double ZoomLevel
+        {
+            get => _zoomLevel;
+            set => SetProperty(ref _zoomLevel, value);
+        }
 
+        // Commands
         public ICommand NewFileCommand { get; }
         public ICommand OpenFileCommand { get; }
         public ICommand SaveFileCommand { get; }
@@ -22,91 +28,57 @@ namespace PaintApplication.ViewModels
         public ICommand UndoCommand { get; }
         public ICommand RedoCommand { get; }
 
-        private double _zoomLevel = 100;
-        public double ZoomLevel
-        {
-            get => _zoomLevel;
-            set
-            {
-                SetProperty(ref _zoomLevel, value);
-                OnPropertyChanged(nameof(ZoomPercentage));
-            }
-        }
-        public string ZoomPercentage => $"{ZoomLevel}%";
-
         public MainViewModel()
         {
             Toolbox = new ToolboxViewModel();
-            Canvas = new CanvasViewModel();
+            Canvas = new CanvasViewModel(Toolbox);
 
-            var baseLayer = new LayerModel { Name = "Layer 1" };
-            Layers.Add(new LayerViewModel(baseLayer));
+            // Menu commands
+            NewFileCommand = new RelayCommand(_ => DoNewFile());
+            OpenFileCommand = new RelayCommand(_ => DoOpenFile());
+            SaveFileCommand = new RelayCommand(_ => DoSaveFile());
+            ExitCommand = new RelayCommand(_ => DoExit());
 
-            // copy shapes từ Layer vào Canvas
-            foreach (var s in baseLayer.Shapes)
-                Canvas.Shapes.Add(s);
-
-            NewFileCommand = new RelayCommand(_ => NewFile());
-            OpenFileCommand = new RelayCommand(_ => OpenFile());
-            SaveFileCommand = new RelayCommand(_ => SaveFile());
-            ExitCommand = new RelayCommand(_ => System.Windows.Application.Current.Shutdown());
-            UndoCommand = new RelayCommand(_ => { /* TODO */ }, _ => true);
-            RedoCommand = new RelayCommand(_ => { /* TODO */ }, _ => true);
+            // Undo/Redo → gọi sang CanvasViewModel
+            UndoCommand = new RelayCommand(_ => Canvas.Undo());
+            RedoCommand = new RelayCommand(_ => Canvas.Redo());
         }
 
-        private void NewFile()
+        private void DoNewFile()
         {
             Canvas.Shapes.Clear();
             Layers.Clear();
-
-            var layer = new LayerModel { Name = "Layer 1" };
-            Layers.Add(new LayerViewModel(layer));
-
-            foreach (var s in layer.Shapes)
-                Canvas.Shapes.Add(s);
         }
 
-        private void OpenFile()
+        private void DoOpenFile()
         {
-            var project = _fileService.OpenProject();
-            if (project == null) return;
-
-            Layers.Clear();
-            foreach (var l in project.Layers)
-                Layers.Add(new LayerViewModel(l));
-
-            Canvas.CanvasWidth = project.CanvasWidth;
-            Canvas.CanvasHeight = project.CanvasHeight;
-
-            Canvas.Shapes.Clear();
-            if (Layers.Count > 0)
+            var dlg = new Microsoft.Win32.OpenFileDialog
             {
-                foreach (var s in Layers[0].Shapes)
-                    Canvas.Shapes.Add(s);
-            }
-        }
-
-        private void SaveFile()
-        {
-            var proj = new ProjectModel
-            {
-                CanvasWidth = Canvas.CanvasWidth,
-                CanvasHeight = Canvas.CanvasHeight
+                Filter = "Image Files|*.png;*.jpg;*.jpeg;*.bmp"
             };
 
-            foreach (var lv in Layers)
+            if (dlg.ShowDialog() == true)
             {
-                var lm = new LayerModel
-                {
-                    Name = lv.Name,
-                    Shapes = lv.Shapes,
-                    IsVisible = lv.IsVisible,
-                    Opacity = lv.Opacity
-                };
-                proj.Layers.Add(lm);
+                Canvas.OpenImage(dlg.FileName, Canvas.CanvasWidth, Canvas.CanvasHeight);
             }
+        }
 
-            _fileService.SaveProject(proj);
+        private void DoSaveFile()
+        {
+            var dlg = new Microsoft.Win32.SaveFileDialog
+            {
+                Filter = "PNG Image|*.png|JPEG Image|*.jpg"
+            };
+
+            if (dlg.ShowDialog() == true)
+            {
+                Canvas.SaveCanvas(dlg.FileName, Canvas.CanvasWidth, Canvas.CanvasHeight);
+            }
+        }
+
+        private void DoExit()
+        {
+            System.Windows.Application.Current.Shutdown();
         }
     }
 }

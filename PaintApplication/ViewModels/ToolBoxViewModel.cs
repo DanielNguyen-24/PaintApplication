@@ -1,106 +1,121 @@
-﻿using System.Collections.ObjectModel;
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
+﻿using PaintApplication.Helpers;
 using System.Windows.Input;
 using System.Windows.Media;
-using PaintApplication.Models;
+using PaintApplication.Models; 
+using System.Collections.ObjectModel;
 
 namespace PaintApplication.ViewModels
 {
-    public class ToolboxViewModel : INotifyPropertyChanged
+    public class ToolboxViewModel : ViewModelBase
     {
-        private Color _selectedColor = Colors.Black;
-        private double _thickness = 2.0;
-        private ToolType _selectedTool = ToolType.Pencil; // mặc định là bút chì
+        // === State ===
 
-        public ToolboxViewModel()
-        {
-            // Danh sách màu có sẵn
-            ColorsList = new ObservableCollection<Color>
-            {
-                Colors.Black,
-                Colors.Red,
-                Colors.Blue,
-                Colors.Green,
-                Colors.Yellow,
-                Colors.Purple
-            };
-
-            // Gán lệnh chọn tool
-            SelectToolCommand = new RelayCommand<ToolType>(tool => SelectedTool = tool);
-        }
-
-        public ObservableCollection<Color> ColorsList { get; }
-
-        public Color SelectedColor
-        {
-            get => _selectedColor;
-            set
-            {
-                if (_selectedColor != value)
-                {
-                    _selectedColor = value;
-                    OnPropertyChanged();
-                }
-            }
-        }
-
-        public double Thickness
-        {
-            get => _thickness;
-            set
-            {
-                if (_thickness != value)
-                {
-                    _thickness = value;
-                    OnPropertyChanged();
-                }
-            }
-        }
-
+        private ToolType _selectedTool = ToolType.Pencil;
         public ToolType SelectedTool
         {
             get => _selectedTool;
-            set
+            set => SetProperty(ref _selectedTool, value);
+        }
+
+        private double _thickness = 2.0;
+        public double Thickness
+        {
+            get => _thickness;
+            set => SetProperty(ref _thickness, value);
+        }
+
+        private Color _selectedColor = Colors.Black;
+        public Color SelectedColor
+        {
+            get => _selectedColor;
+            set => SetProperty(ref _selectedColor, value);
+        }
+
+        // === Commands ===
+
+        // Selection
+        public ICommand SelectCommand { get; }
+
+        // Image
+        public ICommand CropCommand { get; }
+        public ICommand RotateCommand { get; }
+
+        // Tools
+        public ICommand PencilCommand { get; }
+        public ICommand EraserCommand { get; }
+        public ICommand FillCommand { get; }
+        public ICommand TextCommand { get; }
+        public ICommand MagnifierCommand { get; }
+
+        // Brushes
+        public ICommand BrushCommand { get; }
+
+        // Shapes
+        public ICommand DrawCircleCommand { get; }
+
+        // Colors
+        public ICommand OpenColorPickerCommand { get; }
+
+        // Copilot
+        public ICommand AiCommand { get; }
+
+        // Layers
+        public ICommand LayersCommand { get; }
+        public ICommand SelectColorCommand { get; }
+
+        public ToolboxViewModel()
+        {
+            SelectCommand = new RelayCommand(_ => SelectedTool = ToolType.Select);
+            CropCommand = new RelayCommand(_ => DoCrop());
+            RotateCommand = new RelayCommand(_ => DoRotate());
+
+            PencilCommand = new RelayCommand(_ => SelectedTool = ToolType.Pencil);
+            EraserCommand = new RelayCommand(_ => SelectedTool = ToolType.Eraser);
+            FillCommand = new RelayCommand(_ => SelectedTool = ToolType.Fill);
+            TextCommand = new RelayCommand(_ => SelectedTool = ToolType.Text);
+            MagnifierCommand = new RelayCommand(_ => SelectedTool = ToolType.Magnifier);
+
+            BrushCommand = new RelayCommand(_ => SelectedTool = ToolType.Brush);
+            DrawCircleCommand = new RelayCommand(_ => SelectedTool = ToolType.Circle);
+
+            OpenColorPickerCommand = new RelayCommand(_ => DoOpenColorPicker());
+            AiCommand = new RelayCommand(_ => DoAI());
+            LayersCommand = new RelayCommand(_ => DoLayers());
+            SelectCommand = new RelayCommand(_ => SelectedTool = ToolType.Select);
+
+        }
+
+        public void DoCrop() { /* logic cắt ảnh */ }
+        public void DoRotate() { /* logic xoay ảnh */ }
+        public void DoOpenColorPicker() { /* mở popup chọn màu */ }
+        public void DoAI() { /* gọi AI */ }
+        public void DoLayers() { /* quản lý layers */ }
+
+        public ObservableCollection<Color> AvailableColors { get; } =
+            new ObservableCollection<Color>
             {
-                if (_selectedTool != value)
-                {
-                    _selectedTool = value;
-                    OnPropertyChanged();
-                }
-            }
-        }
+                Colors.Black,
+                Colors.White,
+                Colors.Red,
+                Colors.Green,
+                Colors.Blue,
+                Colors.Yellow,
+                Colors.Orange,
+                Colors.Purple,
+                Colors.Brown,
+                Colors.Gray,
+                Colors.Pink,
+                Colors.Cyan,
+                Colors.Magenta,
+                Colors.Lime,
+                Colors.Gold,
+                Colors.Silver,
+                Colors.Navy,
+                Colors.Teal,
+                Colors.Maroon,
+                Colors.Olive
+            };
 
-        public ICommand SelectToolCommand { get; }
-
-        public event PropertyChangedEventHandler PropertyChanged;
-
-        protected void OnPropertyChanged([CallerMemberName] string propertyName = null)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-    }
-
-    // RelayCommand để bind command
-    public class RelayCommand<T> : ICommand
-    {
-        private readonly System.Action<T> _execute;
-        private readonly System.Predicate<T> _canExecute;
-
-        public RelayCommand(System.Action<T> execute, System.Predicate<T> canExecute = null)
-        {
-            _execute = execute;
-            _canExecute = canExecute;
-        }
-
-        public bool CanExecute(object parameter) => _canExecute == null || _canExecute((T)parameter);
-
-        public void Execute(object parameter) => _execute((T)parameter);
-
-        public event System.EventHandler CanExecuteChanged
-        {
-            add => CommandManager.RequerySuggested += value;
-            remove => CommandManager.RequerySuggested -= value;
-        }
+       
     }
 }

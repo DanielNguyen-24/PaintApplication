@@ -10,6 +10,7 @@ namespace PaintApplication.Models
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 
+        // Dùng enum từ Enums.cs
         public ShapeType ShapeType { get; set; }
 
         public Geometry? Geometry { get; set; }
@@ -35,15 +36,16 @@ namespace PaintApplication.Models
             set => SetProperty(ref _visual, value);
         }
 
+        // Polyline
         public List<Point> Points { get; set; } = new List<Point>();
 
-      
+        // Line
         public double X1 { get; set; }
         public double Y1 { get; set; }
         public double X2 { get; set; }
         public double Y2 { get; set; }
 
-      
+        // Rectangle / Ellipse
         public double Width { get; set; }
         public double Height { get; set; }
 

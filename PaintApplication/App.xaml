@@ -7,5 +7,6 @@
     <Application.Resources>
         <conv:ColorToBrushConverter x:Key="ColorToBrushConverter"/>
         <conv:EnumToBooleanConverter x:Key="EnumToBooleanConverter"/>
+        <conv:EnumEqualsConverter x:Key="EnumEqualsConverter"/>
     </Application.Resources>
 </Application>

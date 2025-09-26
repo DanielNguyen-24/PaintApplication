@@ -18,6 +18,9 @@ namespace PaintApplication.Models
         ColorPicker,
         Text,
         Move,
+        Circle,
+        Magnifier,
+        Brush,
         Select
     }
 
@@ -31,8 +34,11 @@ namespace PaintApplication.Models
         Eraser,
         Freeform,
         Star,
-        Freedraw
-        
+        Freedraw,
+        Brush,
+        Text,
+        Polyline
     }
+    
 }
 

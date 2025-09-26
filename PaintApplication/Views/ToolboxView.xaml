@@ -11,62 +11,97 @@
             </Ribbon.ApplicationMenu>
 
             <RibbonTab Header="Toolbar" Foreground="White" Background="#FF202020">
-            <!-- Selection -->
+
+                <!-- Selection -->
                 <RibbonGroup Header="Selection" Background="#FF272727">
-                    <RibbonButton Label="Select"/>
+                    <RibbonButton Label="Select"
+                      Command="{Binding SelectCommand}" />
                 </RibbonGroup>
 
                 <!-- Image -->
                 <RibbonGroup Header="Image" Background="#FF272727" Width="100">
-                    <RibbonButton Label="Crop"/>
-                    <RibbonButton Label="Rotate"/>
+                    <RibbonButton Label="Crop" Command="{Binding CropCommand}" />
+                    <RibbonButton Label="Rotate" Command="{Binding RotateCommand}" />
                 </RibbonGroup>
 
                 <!-- Tools -->
                 <RibbonGroup Header="Tools" Background="#FF272727" Width="200">
-                    <RibbonToggleButton Label="Pencil"/>
-                    <RibbonToggleButton Label="Eraser"/>
-                    <RibbonToggleButton Label="Fill"/>
-                    <RibbonToggleButton Label="Text"/>
-                    <RibbonToggleButton Label="Magnifier"/>
+                    <RibbonToggleButton Label="Pencil"
+                        IsChecked="{Binding SelectedTool, Converter={StaticResource EnumEqualsConverter}, ConverterParameter=Pencil, Mode=TwoWay}" />
+                    <RibbonToggleButton Label="Eraser"
+                        IsChecked="{Binding SelectedTool, Converter={StaticResource EnumEqualsConverter}, ConverterParameter=Eraser, Mode=TwoWay}" />
+                    <RibbonToggleButton Label="Fill"
+                        IsChecked="{Binding SelectedTool, Converter={StaticResource EnumEqualsConverter}, ConverterParameter=Fill, Mode=TwoWay}" />
+                    <RibbonToggleButton Label="Text"
+                        IsChecked="{Binding SelectedTool, Converter={StaticResource EnumEqualsConverter}, ConverterParameter=Text, Mode=TwoWay}" />
+                    <RibbonToggleButton Label="Magnifier"
+                        IsChecked="{Binding SelectedTool, Converter={StaticResource EnumEqualsConverter}, ConverterParameter=Magnifier, Mode=TwoWay}" />
                 </RibbonGroup>
 
                 <!-- Brushes -->
                 <RibbonGroup Header="Brushes" Background="#FF272727">
-                    <RibbonButton Label="Brush"/>
+                    <RibbonButton Label="Brush" Command="{Binding BrushCommand}" />
                 </RibbonGroup>
 
                 <!-- Shapes -->
                 <RibbonGroup Header="Shapes" Background="#FF272727" Width="200">
-                    <!-- Use a standard ItemsControl for shape selection to avoid XDG0066 error -->
                     <ItemsControl>
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
                                 <StackPanel Orientation="Horizontal"/>
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
-                        <Button Content="◯" Width="30" Margin="2"/>
-                        <!-- Add more shape buttons as needed -->
+                        <Button Content="◯"
+                    Width="30" Margin="2"
+                    Command="{Binding DrawCircleCommand}" />
                     </ItemsControl>
                 </RibbonGroup>
 
-
                 <!-- Colors -->
-                <RibbonGroup Header="Colors" Background="#FF272727" Width="200">
-                    <StackPanel Orientation="Horizontal">
-                        <!-- màu sắc -->
+                <RibbonGroup Header="Colors" Background="#FF272727" Width="250">
+                    <StackPanel>
+                        <!-- Bảng màu cố định -->
+                        <ItemsControl ItemsSource="{Binding AvailableColors}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <UniformGrid Columns="10"/>
+                                    <!-- 10 cột = 2 hàng 20 màu -->
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Width="20" Height="20" Margin="1"
+                            Background="{Binding Converter={StaticResource ColorToBrushConverter}}"
+                            Command="{Binding DataContext.SelectColorCommand,
+                                              RelativeSource={RelativeSource AncestorType=RibbonGroup}}"
+                            CommandParameter="{Binding}"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <!-- ColorPicker cho chọn tự do -->
+                        <xctk:ColorPicker Width="200" Height="25"
+                          Margin="5"
+                          SelectedColor="{Binding SelectedColor, Mode=TwoWay}"/>
                     </StackPanel>
                 </RibbonGroup>
 
+
+
+
+
                 <!-- Copilot -->
                 <RibbonGroup Header="Copilot" Background="#FF272727">
-                    <RibbonButton Label="AI"/>
+                    <RibbonButton Label="AI"
+                      Command="{Binding AiCommand}" />
                 </RibbonGroup>
 
                 <!-- Layers -->
                 <RibbonGroup Header="Layers" Background="#FF272727">
-                    <RibbonButton Label="Layers"/>
+                    <RibbonButton Label="Layers"
+                      Command="{Binding LayersCommand}" />
                 </RibbonGroup>
+
             </RibbonTab>
         </Ribbon>
     </StackPanel>
