@@ -1,0 +1,126 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Rectangle -->
+    <DrawingImage x:Key="IconRectangle">
+        <DrawingImage.Drawing>
+            <GeometryDrawing Brush="White" Geometry="M0,0 H20 V15 H0 Z" />
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <!-- Ellipse -->
+    <DrawingImage x:Key="IconEllipse">
+        <DrawingImage.Drawing>
+            <GeometryDrawing Brush="White" Geometry="M10,0 A10,7.5 0 1 1 9.9,0 Z" />
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <!-- Line -->
+    <DrawingImage x:Key="IconLine">
+        <DrawingImage.Drawing>
+            <GeometryDrawing Brush="White">
+                <GeometryDrawing.Pen>
+                    <Pen Brush="White" Thickness="2"/>
+                </GeometryDrawing.Pen>
+                <GeometryDrawing.Geometry>
+                    <LineGeometry StartPoint="2,14" EndPoint="14,2"/>
+                </GeometryDrawing.Geometry>
+            </GeometryDrawing>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <!-- Triangle -->
+    <DrawingImage x:Key="IconTriangle">
+        <DrawingImage.Drawing>
+            <GeometryDrawing Brush="White" Geometry="M0,20 L10,0 L20,20 Z" />
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <!-- Star -->
+    <DrawingImage x:Key="IconStar">
+        <DrawingImage.Drawing>
+            <GeometryDrawing Brush="White"
+                             Geometry="M10,0 L12,7 L20,7 L13,12 L15,20 L10,15 L5,20 L7,12 L0,7 L8,7 Z"/>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <!-- Diamond -->
+    <DrawingImage x:Key="IconDiamond">
+        <DrawingImage.Drawing>
+            <GeometryDrawing Brush="White" Geometry="M10,0 L20,10 L10,20 L0,10 Z" />
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <!-- Pentagon -->
+    <DrawingImage x:Key="IconPentagon">
+        <DrawingImage.Drawing>
+            <GeometryDrawing Brush="White" Geometry="M10,0 L20,7 L16,20 L4,20 L0,7 Z" />
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <!-- Hexagon -->
+    <DrawingImage x:Key="IconHexagon">
+        <DrawingImage.Drawing>
+            <GeometryDrawing Brush="White" Geometry="M5,0 L15,0 L20,10 L15,20 L5,20 L0,10 Z" />
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <!-- Heart -->
+    <DrawingImage x:Key="IconHeart">
+        <DrawingImage.Drawing>
+            <GeometryDrawing Brush="White"
+                             Geometry="M10,18 L2,10 A4,4 0 0 1 10,2 A4,4 0 0 1 18,10 Z"/>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <!-- Cloud -->
+    <DrawingImage x:Key="IconCloud">
+        <DrawingImage.Drawing>
+            <GeometryDrawing Brush="White"
+                             Geometry="M5,15 A5,5 0 0 1 15,15 A5,5 0 0 1 20,10
+                                       A5,5 0 0 1 10,5 A5,5 0 0 1 5,10 Z"/>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <!-- Star 4 -->
+    <DrawingImage x:Key="IconStar4">
+        <DrawingImage.Drawing>
+            <GeometryDrawing Brush="White" Geometry="M10,0 L12,8 L20,10 L12,12 L10,20 L8,12 L0,10 L8,8 Z" />
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <!-- Star 6 -->
+    <DrawingImage x:Key="IconStar6">
+        <DrawingImage.Drawing>
+            <GeometryDrawing Brush="White">
+                <GeometryDrawing.Geometry>
+                    <!-- 2 tam giác chồng lên nhau -->
+                    <GeometryGroup>
+                        <PathGeometry Figures="M50,0 L100,87 L0,87 Z"/>
+                        <!-- tam giác trên -->
+                        <PathGeometry Figures="M0,13 L100,13 L50,100 Z"/>
+                        <!-- tam giác dưới -->
+                    </GeometryGroup>
+                </GeometryDrawing.Geometry>
+            </GeometryDrawing>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <!-- Arrows 4 -->
+    <DrawingImage x:Key="IconArrows4">
+        <DrawingImage.Drawing>
+            <GeometryDrawing Brush="Black"
+                             Geometry="M10,0 L12,4 L8,4 Z M20,10 L16,12 L16,8 Z
+                                       M10,20 L12,16 L8,16 Z M0,10 L4,12 L4,8 Z"/>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <!-- Lightning -->
+    <DrawingImage x:Key="IconLightning">
+        <DrawingImage.Drawing>
+            <GeometryDrawing Brush="Black"
+                             Geometry="M10,0 L5,12 H12 L8,20 L15,8 H8 Z"/>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+</ResourceDictionary>

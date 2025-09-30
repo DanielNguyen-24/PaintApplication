@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Globalization;
 using System.Windows.Data;
-using PaintApplication.Models;
 
 namespace PaintApplication.Converters
 {
@@ -14,20 +13,16 @@ namespace PaintApplication.Converters
 
             string checkValue = value.ToString();
             string targetValue = parameter.ToString();
+
             return checkValue.Equals(targetValue, StringComparison.InvariantCultureIgnoreCase);
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            if (parameter == null)
-                return null;
-
             if ((bool)value)
-            {
-                return Enum.Parse(typeof(ToolType), parameter.ToString());
-            }
+                return Enum.Parse(targetType, parameter.ToString());
 
-            return Binding.DoNothing; // không đổi khi unchecked
+            return Binding.DoNothing;
         }
     }
 }

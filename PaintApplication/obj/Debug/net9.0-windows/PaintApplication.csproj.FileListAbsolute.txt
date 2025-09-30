@@ -44,3 +44,4 @@ D:\Code\C#\Application Development Technology\PaintApplication\PaintApplication\
 D:\Code\C#\Application Development Technology\PaintApplication\PaintApplication\obj\Debug\net9.0-windows\PaintApp.BF307B69.Up2Date
 D:\Code\C#\Application Development Technology\PaintApplication\PaintApplication\obj\Debug\net9.0-windows\App.baml
 D:\Code\C#\Application Development Technology\PaintApplication\PaintApplication\obj\Debug\net9.0-windows\PaintApplication.sourcelink.json
+D:\Code\C#\Application Development Technology\PaintApplication\PaintApplication\obj\Debug\net9.0-windows\Resources\Icons.baml

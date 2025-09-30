@@ -5,8 +5,16 @@
              xmlns:conv="clr-namespace:PaintApplication.Converters"
              StartupUri="Views/MainWindow.xaml">
     <Application.Resources>
-        <conv:ColorToBrushConverter x:Key="ColorToBrushConverter"/>
-        <conv:EnumToBooleanConverter x:Key="EnumToBooleanConverter"/>
-        <conv:EnumEqualsConverter x:Key="EnumEqualsConverter"/>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <!-- Import resource dictionaries -->
+                <ResourceDictionary Source="Resources/Icons.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- Converters -->
+            <conv:ColorToBrushConverter x:Key="ColorToBrushConverter"/>
+            <conv:EnumToBooleanConverter x:Key="EnumToBooleanConverter"/>
+            <conv:EnumEqualsConverter x:Key="EnumEqualsConverter"/>
+        </ResourceDictionary>
     </Application.Resources>
 </Application>

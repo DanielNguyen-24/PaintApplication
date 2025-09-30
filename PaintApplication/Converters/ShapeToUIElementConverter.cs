@@ -18,9 +18,26 @@ namespace PaintApplication.Converters
 
                 switch (shape.ShapeType)
                 {
-                    case ShapeType.Pencil:
-                    case ShapeType.Eraser:
+                    case ShapeType.Freeform:
                         var geometry = new StreamGeometry();
+                        using (var ctx = geometry.Open())
+                        {
+                            if (shape.Points.Count > 0)
+                            {
+                                ctx.BeginFigure(shape.Points[0], false, false);
+                                for (int i = 1; i < shape.Points.Count; i++)
+                                    ctx.LineTo(shape.Points[i], true, false);
+                            }
+                        }
+                        geometry.Freeze();
+                        return new Path
+                        {
+                            Data = geometry,
+                            Stroke = stroke,
+                            StrokeThickness = shape.Thickness
+                        };
+
+                         geometry = new StreamGeometry();
                         using (var ctx = geometry.Open())
                         {
                             if (shape.Points.Count > 0)

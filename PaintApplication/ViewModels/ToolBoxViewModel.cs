@@ -16,6 +16,20 @@ namespace PaintApplication.ViewModels
             get => _selectedTool;
             set => SetProperty(ref _selectedTool, value);
         }
+        private ShapeType _selectedShape = ShapeType.None;
+        public ShapeType SelectedShape
+        {
+            get => _selectedShape;
+            set
+            {
+                if (SetProperty(ref _selectedShape, value))
+                {
+                    if (value != ShapeType.None)
+                        SelectedTool = ToolType.Shape;
+                }
+            }
+        }
+
 
         private double _thickness = 2.0;
         public double Thickness
@@ -76,8 +90,11 @@ namespace PaintApplication.ViewModels
             MagnifierCommand = new RelayCommand(_ => SelectedTool = ToolType.Magnifier);
 
             BrushCommand = new RelayCommand(_ => SelectedTool = ToolType.Brush);
-            DrawCircleCommand = new RelayCommand(_ => SelectedTool = ToolType.Circle);
-
+            DrawCircleCommand = new RelayCommand(_ =>
+            {
+                SelectedTool = ToolType.Shape;
+                SelectedShape = ShapeType.Ellipse;
+            });
             OpenColorPickerCommand = new RelayCommand(_ => DoOpenColorPicker());
             AiCommand = new RelayCommand(_ => DoAI());
             LayersCommand = new RelayCommand(_ => DoLayers());

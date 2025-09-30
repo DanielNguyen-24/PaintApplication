@@ -9,35 +9,39 @@ namespace PaintApplication.Models
 {
     public enum ToolType
     {
+        None,
         Pencil,
-        Eraser,
-        Line,
-        Rectangle,
-        Ellipse,
-        Fill,
-        ColorPicker,
-        Text,
-        Move,
-        Circle,
-        Magnifier,
         Brush,
+        Eraser,
+        Fill,
+        Shape,   // Khi chọn Shape thì sẽ cần ShapeType để biết vẽ gì
+        Text,
+        Magnifier,
         Select
     }
 
     public enum ShapeType
     {
-        Line,
+        None,
         Rectangle,
         Ellipse,
-        Fill,
-        Pencil,
-        Eraser,
-        Freeform,
+        Line,
+        Triangle,
         Star,
-        Freedraw,
-        Brush,
-        Text,
-        Polyline
+        Diamond,
+        Pentagon,
+        Hexagon,
+        Heart,
+        Cloud,
+        Star4,
+        Star6,
+        ArrowUp,
+        ArrowDown,
+        ArrowLeft,
+        ArrowRight,
+        Polygon,
+        Freeform,
+        Lightning
     }
     
 }
