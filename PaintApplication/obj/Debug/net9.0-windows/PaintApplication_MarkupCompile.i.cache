@@ -12,9 +12,9 @@ TRACE;DEBUG;NET;NET9_0;NETCOREAPP;WINDOWS;WINDOWS7_0;NET5_0_OR_GREATER;NET6_0_OR
 D:\Code\C#\Application Development Technology\PaintApplication\PaintApplication\App.xaml
 4-770592653
 
-26-1880989216
+27-1722704950
 205-255440011
 Resources\Icons.xaml;Views\CanvasView.xaml;Views\MainWindow.xaml;Views\ToolboxView.xaml;
 
-False
+True
 

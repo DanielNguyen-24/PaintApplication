@@ -48,7 +48,25 @@
 
                 <!-- Brushes -->
                 <RibbonGroup Header="Brushes" Background="#FF272727">
-                    <RibbonButton Label="Brush" Command="{Binding BrushCommand}" />
+                    <RibbonSplitButton Label="Brushes" Background="#FF272727">
+                        <RibbonSplitButton.ItemsSource>
+                            <Binding Path="Brushes"/>
+                        </RibbonSplitButton.ItemsSource>
+                        <RibbonSplitButton.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" Margin="4"  Background="#FF272727">
+                                    <Image Source="{Binding IconPath}" Width="32" Height="20"/>
+                                    <TextBlock Text="{Binding Name}" Margin="8,0,0,0"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </RibbonSplitButton.ItemTemplate>
+                        <RibbonSplitButton.Command>
+                            <Binding Path="SelectBrushCommand"/>
+                        </RibbonSplitButton.Command>
+                        <RibbonSplitButton.CommandParameter>
+                            <Binding/>
+                        </RibbonSplitButton.CommandParameter>
+                    </RibbonSplitButton>
                 </RibbonGroup>
 
                 <!-- Shapes -->

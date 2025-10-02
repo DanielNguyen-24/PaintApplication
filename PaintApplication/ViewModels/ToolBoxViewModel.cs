@@ -4,6 +4,7 @@ using System.Windows.Media;
 using PaintApplication.Models; 
 using System.Collections.ObjectModel;
 
+
 namespace PaintApplication.ViewModels
 {
     public class ToolboxViewModel : ViewModelBase
@@ -29,7 +30,19 @@ namespace PaintApplication.ViewModels
                 }
             }
         }
-
+        private BrushType _selectedBrush = BrushType.Brush;
+        public BrushType SelectedBrush
+        {
+            get => _selectedBrush;
+            set
+            {
+                if (SetProperty(ref _selectedBrush, value))
+                {
+                    if (value != BrushType.Brush)
+                        SelectedTool = ToolType.Brush;
+                }
+            }
+        }
 
         private double _thickness = 2.0;
         public double Thickness
@@ -44,6 +57,9 @@ namespace PaintApplication.ViewModels
             get => _selectedColor;
             set => SetProperty(ref _selectedColor, value);
         }
+
+        public ObservableCollection<BrushItem> Brushes { get; set; }
+
 
         // === Commands ===
 
@@ -88,7 +104,6 @@ namespace PaintApplication.ViewModels
             FillCommand = new RelayCommand(_ => SelectedTool = ToolType.Fill);
             TextCommand = new RelayCommand(_ => SelectedTool = ToolType.Text);
             MagnifierCommand = new RelayCommand(_ => SelectedTool = ToolType.Magnifier);
-
             BrushCommand = new RelayCommand(_ => SelectedTool = ToolType.Brush);
             DrawCircleCommand = new RelayCommand(_ =>
             {
@@ -99,6 +114,26 @@ namespace PaintApplication.ViewModels
             AiCommand = new RelayCommand(_ => DoAI());
             LayersCommand = new RelayCommand(_ => DoLayers());
             SelectCommand = new RelayCommand(_ => SelectedTool = ToolType.Select);
+            BrushCommand = new RelayCommand(_ =>
+            {
+                if (_ is BrushItem brush)
+                    _selectedBrush = brush.Type;
+                SelectedTool = ToolType.Brush;
+            });
+            Brushes = new ObservableCollection<BrushItem>
+{
+    new BrushItem { Name = "Brush", Type = BrushType.Brush, IconPath = "pack://application:,,,/Resources/Icons/brush.png" },
+    //new BrushItem { Name = "Calligraphy brush", Type = BrushType.CalligraphyBrush, IconPath = "pack://application:,,,/Resources/Icons/calligraphy_brush.png" },
+    new BrushItem { Name = "Calligraphy pen", Type = BrushType.CalligraphyPen, IconPath = "pack://application:,,,/Resources/Icons/calligraphy_pen.png" },
+    new BrushItem { Name = "Airbrush", Type = BrushType.Airbrush, IconPath = "pack://application:,,,/Resources/Icons/airbrush.png" },
+    new BrushItem { Name = "Oil brush", Type = BrushType.OilBrush, IconPath = "pack://application:,,,/Resources/Icons/oil_brush.png" },
+    new BrushItem { Name = "Crayon", Type = BrushType.Crayon, IconPath = "pack://application:,,,/Resources/Icons/crayon.png" },
+    new BrushItem { Name = "Marker", Type = BrushType.Marker, IconPath = "pack://application:,,,/Resources/Icons/marker.png" },
+    new BrushItem { Name = "Natural pencil", Type = BrushType.NaturalPencil, IconPath = "pack://application:,,,/Resources/Icons/natural_pencil.png" },
+    new BrushItem { Name = "Watercolor brush", Type = BrushType.WatercolorBrush, IconPath = "pack://application:,,,/Resources/Icons/watercolor.png" }
+};
+
+            _selectedBrush = Brushes[0].Type;
 
         }
 

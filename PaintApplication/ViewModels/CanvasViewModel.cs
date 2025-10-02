@@ -1,4 +1,4 @@
-﻿// CanvasViewModel.cs (sửa theo đề xuất)
+﻿// CanvasViewModel.cs (fixed)
 using PaintApplication.Helpers;
 using PaintApplication.Models;
 using System;
@@ -12,20 +12,20 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using System.Text.Json;
-using System.Runtime.CompilerServices;
-using Path= System.Windows.Shapes.Path;
+using Path = System.Windows.Shapes.Path;
 
 namespace PaintApplication.ViewModels
 {
     public class CanvasViewModel : ViewModelBase
     {
         public ObservableCollection<UIElement> Shapes { get; } = new();
-
         private Polyline? _currentLine;
         private Shape? _currentShape;
         private Point _startPoint;
         private readonly ToolboxViewModel _toolbox;
         private event Action? StateChanged;
+
+        private readonly Random _rand = new Random();
 
         // Mouse position hiển thị ở StatusBar
         private Point _mousePosition;
@@ -86,7 +86,6 @@ namespace PaintApplication.ViewModels
         {
             _startPoint = pos;
             var color = _toolbox.SelectedColor;
-            // ưu tiên BrushSize (Slider) nếu > 0, ngược lại fallback về toolbox.Thickness
             var thickness = (BrushSize > 0) ? BrushSize : _toolbox.Thickness;
 
             switch (_toolbox.SelectedTool)
@@ -96,56 +95,11 @@ namespace PaintApplication.ViewModels
                     break;
 
                 case ToolType.Eraser:
-                    // eraser vẽ màu trắng và thường to hơn
                     StartPolyline(Colors.White, thickness * 2, ShapeType.None);
                     break;
 
                 case ToolType.Shape:
-                    switch (_toolbox.SelectedShape)
-                    {
-                        case ShapeType.Line:
-                            StartLine(color, thickness);
-                            break;
-                        case ShapeType.Rectangle:
-                            StartRectangle(color, thickness);
-                            break;
-                        case ShapeType.Pentagon:
-                            StartPentagon(color, thickness);
-                            break;
-                        case ShapeType.Hexagon:
-                            StartHexagon(color, thickness);
-                            break;
-                        case ShapeType.Ellipse:
-                            StartEllipse(color, thickness);
-                            break;
-                        case ShapeType.Triangle:
-                            StartTriangle(color, thickness);
-                            break;
-                        case ShapeType.Star:
-                            StartStar(color, thickness);
-                            break;
-                        case ShapeType.Diamond:
-                            StartDiamond(color, thickness);
-                            break;
-                        case ShapeType.Star4:
-                            StartStar4(color, thickness);
-                            break;
-                        case ShapeType.Star6:
-                            StartStar6(color, thickness);
-                            break;
-                        case ShapeType.ArrowUp:
-                            StartArrows4(color, thickness);
-                            break;
-                        case ShapeType.Lightning:
-                            StartLightning(color, thickness);
-                            break;
-                        case ShapeType.Heart:
-                            StartHeart(color, thickness);
-                            break;
-                        case ShapeType.Cloud:
-                            StartCloud(color, thickness);
-                            break;
-                    }
+                    HandleShapeMouseDown(pos, color, thickness);
                     break;
 
                 case ToolType.Fill:
@@ -157,12 +111,84 @@ namespace PaintApplication.ViewModels
                 case ToolType.Text:
                     // TODO: add TextBox creation
                     break;
+
+                case ToolType.Brush:
+                    switch (_toolbox.SelectedBrush)
+                    {
+                        case BrushType.Brush:
+                            StartPolyline(color, thickness, ShapeType.None);
+                            break;
+
+                        case BrushType.CalligraphyBrush:
+                            _currentLine = new Polyline
+                            {
+                                Stroke = new SolidColorBrush(color),
+                                StrokeThickness = thickness * 1.5,
+                                StrokeStartLineCap = PenLineCap.Triangle,
+                                StrokeEndLineCap = PenLineCap.Triangle,
+                                StrokeLineJoin = PenLineJoin.Bevel
+                            };
+                            Shapes.Add(_currentLine);
+                            break;
+
+                        case BrushType.CalligraphyPen:
+                            StartPolyline(color, thickness * 0.7, ShapeType.None);
+                            break;
+
+                        case BrushType.Airbrush:
+                            StartAirbrush(pos, color, thickness);
+                            break;
+
+                        case BrushType.OilBrush:
+                            _currentLine = new Polyline
+                            {
+                                Stroke = new SolidColorBrush(Color.FromArgb(200, color.R, color.G, color.B)),
+                                StrokeThickness = thickness * 2,
+                                StrokeLineJoin = PenLineJoin.Round
+                            };
+                            Shapes.Add(_currentLine);
+                            break;
+
+                        case BrushType.Crayon:
+                            StartCrayon(pos, color, thickness);
+                            break;
+
+                        case BrushType.Marker:
+                            _currentLine = new Polyline
+                            {
+                                Stroke = new SolidColorBrush(Color.FromArgb(100, color.R, color.G, color.B)),
+                                StrokeThickness = thickness * 3,
+                                StrokeLineJoin = PenLineJoin.Round
+                            };
+                            Shapes.Add(_currentLine);
+                            break;
+
+                        case BrushType.NaturalPencil:
+                            StartPencil(pos, color, thickness);
+                            break;
+
+                        case BrushType.WatercolorBrush:
+                            // watercolor dùng ellipse trong suốt thay vì polyline
+                            var dot = new Ellipse
+                            {
+                                Width = thickness * 2,
+                                Height = thickness,
+                                Fill = new SolidColorBrush(Color.FromArgb(60, color.R, color.G, color.B))
+                            };
+                            Canvas.SetLeft(dot, pos.X - thickness);
+                            Canvas.SetTop(dot, pos.Y - thickness / 2);
+                            Shapes.Add(dot);
+                            break;
+                    }
+                    break;
             }
         }
 
         private void OnMouseMove(Point pos)
         {
             MousePosition = pos;
+            var color = _toolbox.SelectedColor;
+            Random rand = new Random();
 
             switch (_toolbox.SelectedTool)
             {
@@ -173,107 +199,99 @@ namespace PaintApplication.ViewModels
                     break;
 
                 case ToolType.Shape:
-                    switch (_toolbox.SelectedShape)
+                    HandleShapeMouseMove(pos);
+                    break;
+
+                case ToolType.Brush:
+                    switch (_toolbox.SelectedBrush)
                     {
-                        case ShapeType.Line:
-                            if (_currentShape is Line line)
+                        case BrushType.Airbrush:
+                            // rải nhiều chấm random
+                            for (int i = 0; i < 40; i++)
                             {
-                                line.X2 = pos.X;
-                                line.Y2 = pos.Y;
-                            }
-                            break;
+                                double angle = rand.NextDouble() * 2 * Math.PI;
+                                double radius = rand.NextDouble() * BrushSize;
+                                double x = pos.X + radius * Math.Cos(angle);
+                                double y = pos.Y + radius * Math.Sin(angle);
 
-                        case ShapeType.Rectangle:
-                            if (_currentShape is Rectangle rect)
-                            {
-                                double x = Math.Min(pos.X, _startPoint.X);
-                                double y = Math.Min(pos.Y, _startPoint.Y);
-                                rect.Width = Math.Abs(pos.X - _startPoint.X);
-                                rect.Height = Math.Abs(pos.Y - _startPoint.Y);
-                                Canvas.SetLeft(rect, x);
-                                Canvas.SetTop(rect, y);
-                            }
-                            break;
-
-                        case ShapeType.Pentagon:
-                            if (_currentShape is Polygon pent)
-                                pent.Points = CreateRegularPolygonPoints(_startPoint, pos, 5);
-                            break;
-
-                        case ShapeType.Hexagon:
-                            if (_currentShape is Polygon hex)
-                                hex.Points = CreateRegularPolygonPoints(_startPoint, pos, 6);
-                            break;
-
-                        case ShapeType.Heart:
-                            if (_currentShape is Path heart)
-                                heart.Data = CreateHeartGeometry(_startPoint, pos);
-                            break;
-
-                        case ShapeType.Cloud:
-                            if (_currentShape is Path cloud)
-                                cloud.Data = CreateCloudGeometry(_startPoint, pos);
-                            break;
-
-                        case ShapeType.Ellipse:
-                            if (_currentShape is Ellipse ell)
-                            {
-                                double x = Math.Min(pos.X, _startPoint.X);
-                                double y = Math.Min(pos.Y, _startPoint.Y);
-                                ell.Width = Math.Abs(pos.X - _startPoint.X);
-                                ell.Height = Math.Abs(pos.Y - _startPoint.Y);
-                                Canvas.SetLeft(ell, x);
-                                Canvas.SetTop(ell, y);
-                            }
-                            break;
-
-                        case ShapeType.Triangle:
-                            if (_currentShape is Polygon tri)
-                            {
-                                tri.Points = new PointCollection
+                                var sprayDot = new Ellipse
                                 {
-                                    new Point((_startPoint.X + pos.X) / 2, _startPoint.Y), // top vertex
-                                    new Point(pos.X, pos.Y),                               // bottom-right
-                                    new Point(_startPoint.X, pos.Y)                        // bottom-left
+                                    Width = 1,
+                                    Height = 1,
+                                    Fill = new SolidColorBrush(color)
                                 };
+                                Canvas.SetLeft(sprayDot, x);
+                                Canvas.SetTop(sprayDot, y);
+                                Shapes.Add(sprayDot);
                             }
                             break;
 
-                        case ShapeType.Star:
-                            if (_currentShape is Polygon star)
+                        case BrushType.Crayon:
+                            // nhiều line ngắn đứt đoạn
+                            for (int i = 0; i < 8; i++)
                             {
-                                star.Points = CreateStarPoints(_startPoint, pos);
+                                var line = new Line
+                                {
+                                    X1 = pos.X + rand.NextDouble() * BrushSize - BrushSize / 2,
+                                    Y1 = pos.Y + rand.NextDouble() * BrushSize - BrushSize / 2,
+                                    X2 = pos.X + rand.NextDouble() * BrushSize - BrushSize / 2,
+                                    Y2 = pos.Y + rand.NextDouble() * BrushSize - BrushSize / 2,
+                                    Stroke = new SolidColorBrush(Color.FromArgb(
+                                        (byte)rand.Next(80, 160), color.R, color.G, color.B)),
+                                    StrokeThickness = 1
+                                };
+                                Shapes.Add(line);
                             }
                             break;
 
-                        case ShapeType.Diamond:
-                            if (_currentShape is Polygon dia)
-                                dia.Points = CreateDiamondPoints(_startPoint, pos);
+                        case BrushType.NaturalPencil:
+                            // nét mảnh, run nhẹ
+                            var pencilLine = new Line
+                            {
+                                X1 = pos.X,
+                                Y1 = pos.Y,
+                                X2 = pos.X + rand.NextDouble() * 2 - 1,
+                                Y2 = pos.Y + rand.NextDouble() * 2 - 1,
+                                Stroke = new SolidColorBrush(Color.FromArgb(
+                                    (byte)rand.Next(100, 200), color.R, color.G, color.B)),
+                                StrokeThickness = 1
+                            };
+                            Shapes.Add(pencilLine);
                             break;
 
-                        case ShapeType.Star4:
-                            if (_currentShape is Polygon s4)
-                                s4.Points = CreateStarNPoints(_startPoint, pos, 4);
+                        case BrushType.OilBrush:
+                            // opacity thay đổi để tạo cảm giác nhòe
+                            if (_currentLine != null)
+                            {
+                                byte alpha = (byte)rand.Next(150, 220);
+                                (_currentLine.Stroke as SolidColorBrush).Color =
+                                    Color.FromArgb(alpha, color.R, color.G, color.B);
+                                _currentLine.Points.Add(pos);
+                            }
                             break;
 
-                        case ShapeType.Star6:
-                            if (_currentShape is Polygon s6)
-                                s6.Points = CreateStarNPoints(_startPoint, pos, 6);
+                        case BrushType.WatercolorBrush:
+                            // thêm nhiều ellipse trong suốt để chồng màu
+                            var dot = new Ellipse
+                            {
+                                Width = BrushSize * 2,
+                                Height = BrushSize,
+                                Fill = new SolidColorBrush(Color.FromArgb(60, color.R, color.G, color.B))
+                            };
+                            Canvas.SetLeft(dot, pos.X - BrushSize);
+                            Canvas.SetTop(dot, pos.Y - BrushSize / 2);
+                            Shapes.Add(dot);
                             break;
 
-                        case ShapeType.ArrowUp:
-                            if (_currentShape is Path arr)
-                                arr.Data = CreateArrows4Geometry(_startPoint, pos);
-                            break;
-
-                        case ShapeType.Lightning:
-                            if (_currentShape is Path bolt)
-                                bolt.Data = CreateLightningGeometry(_startPoint, pos);
+                        default:
+                            if (_currentLine != null)
+                                _currentLine.Points.Add(pos);
                             break;
                     }
                     break;
             }
         }
+
 
         private void OnMouseUp()
         {
@@ -340,7 +358,10 @@ namespace PaintApplication.ViewModels
             _currentLine = new Polyline
             {
                 Stroke = new SolidColorBrush(color),
-                StrokeThickness = thickness
+                StrokeThickness = thickness,
+                StrokeStartLineCap = PenLineCap.Round,
+                StrokeEndLineCap = PenLineCap.Round,
+                StrokeLineJoin = PenLineJoin.Round
             };
             _currentLine.Points.Add(_startPoint);
             Shapes.Add(_currentLine);
@@ -1076,6 +1097,215 @@ namespace PaintApplication.ViewModels
                 Width = width,
                 Height = height
             });
+        }
+
+        // Helper: shapes handling split-out để code gọn
+        private void HandleShapeMouseDown(Point pos, Color color, double thickness)
+        {
+            switch (_toolbox.SelectedShape)
+            {
+                case ShapeType.Line:
+                    StartLine(color, thickness);
+                    break;
+                case ShapeType.Rectangle:
+                    StartRectangle(color, thickness);
+                    break;
+                case ShapeType.Pentagon:
+                    StartPentagon(color, thickness);
+                    break;
+                case ShapeType.Hexagon:
+                    StartHexagon(color, thickness);
+                    break;
+                case ShapeType.Ellipse:
+                    StartEllipse(color, thickness);
+                    break;
+                case ShapeType.Triangle:
+                    StartTriangle(color, thickness);
+                    break;
+                case ShapeType.Star:
+                    StartStar(color, thickness);
+                    break;
+                case ShapeType.Diamond:
+                    StartDiamond(color, thickness);
+                    break;
+                case ShapeType.Star4:
+                    StartStar4(color, thickness);
+                    break;
+                case ShapeType.Star6:
+                    StartStar6(color, thickness);
+                    break;
+                case ShapeType.ArrowUp:
+                    StartArrows4(color, thickness);
+                    break;
+                case ShapeType.Lightning:
+                    StartLightning(color, thickness);
+                    break;
+                case ShapeType.Heart:
+                    StartHeart(color, thickness);
+                    break;
+                case ShapeType.Cloud:
+                    StartCloud(color, thickness);
+                    break;
+            }
+        }
+
+        private void HandleShapeMouseMove(Point pos)
+        {
+            switch (_toolbox.SelectedShape)
+            {
+                case ShapeType.Line:
+                    if (_currentShape is Line line)
+                    {
+                        line.X2 = pos.X;
+                        line.Y2 = pos.Y;
+                    }
+                    break;
+
+                case ShapeType.Rectangle:
+                    if (_currentShape is Rectangle rect)
+                    {
+                        double x = Math.Min(pos.X, _startPoint.X);
+                        double y = Math.Min(pos.Y, _startPoint.Y);
+                        rect.Width = Math.Abs(pos.X - _startPoint.X);
+                        rect.Height = Math.Abs(pos.Y - _startPoint.Y);
+                        Canvas.SetLeft(rect, x);
+                        Canvas.SetTop(rect, y);
+                    }
+                    break;
+
+                case ShapeType.Pentagon:
+                    if (_currentShape is Polygon pent)
+                        pent.Points = CreateRegularPolygonPoints(_startPoint, pos, 5);
+                    break;
+
+                case ShapeType.Hexagon:
+                    if (_currentShape is Polygon hex)
+                        hex.Points = CreateRegularPolygonPoints(_startPoint, pos, 6);
+                    break;
+
+                case ShapeType.Heart:
+                    if (_currentShape is Path heart)
+                        heart.Data = CreateHeartGeometry(_startPoint, pos);
+                    break;
+
+                case ShapeType.Cloud:
+                    if (_currentShape is Path cloud)
+                        cloud.Data = CreateCloudGeometry(_startPoint, pos);
+                    break;
+
+                case ShapeType.Ellipse:
+                    if (_currentShape is Ellipse ell)
+                    {
+                        double x = Math.Min(pos.X, _startPoint.X);
+                        double y = Math.Min(pos.Y, _startPoint.Y);
+                        ell.Width = Math.Abs(pos.X - _startPoint.X);
+                        ell.Height = Math.Abs(pos.Y - _startPoint.Y);
+                        Canvas.SetLeft(ell, x);
+                        Canvas.SetTop(ell, y);
+                    }
+                    break;
+
+                case ShapeType.Triangle:
+                    if (_currentShape is Polygon tri)
+                    {
+                        tri.Points = new PointCollection
+                        {
+                            new Point((_startPoint.X + pos.X) / 2, _startPoint.Y), // top vertex
+                            new Point(pos.X, pos.Y),                               // bottom-right
+                            new Point(_startPoint.X, pos.Y)                        // bottom-left
+                        };
+                    }
+                    break;
+
+                case ShapeType.Star:
+                    if (_currentShape is Polygon star)
+                    {
+                        star.Points = CreateStarPoints(_startPoint, pos);
+                    }
+                    break;
+
+                case ShapeType.Diamond:
+                    if (_currentShape is Polygon dia)
+                        dia.Points = CreateDiamondPoints(_startPoint, pos);
+                    break;
+
+                case ShapeType.Star4:
+                    if (_currentShape is Polygon s4)
+                        s4.Points = CreateStarNPoints(_startPoint, pos, 4);
+                    break;
+
+                case ShapeType.Star6:
+                    if (_currentShape is Polygon s6)
+                        s6.Points = CreateStarNPoints(_startPoint, pos, 6);
+                    break;
+
+                case ShapeType.ArrowUp:
+                    if (_currentShape is Path arr)
+                        arr.Data = CreateArrows4Geometry(_startPoint, pos);
+                    break;
+
+                case ShapeType.Lightning:
+                    if (_currentShape is Path bolt)
+                        bolt.Data = CreateLightningGeometry(_startPoint, pos);
+                    break;
+            }
+        }
+
+        private void StartAirbrush(Point pos, Color color, double size)
+        {
+            int dots = Math.Max(8, (int)size * 6);
+            for (int i = 0; i < dots; i++)
+            {
+                double angle = _rand.NextDouble() * 2 * Math.PI;
+                double radius = _rand.NextDouble() * size;
+                double x = pos.X + radius * Math.Cos(angle);
+                double y = pos.Y + radius * Math.Sin(angle);
+
+                var dot = new Ellipse
+                {
+                    Width = 1 + _rand.NextDouble() * 2,
+                    Height = 1 + _rand.NextDouble() * 2,
+                    Fill = new SolidColorBrush(Color.FromArgb((byte)_rand.Next(100, 255), color.R, color.G, color.B))
+                };
+                Canvas.SetLeft(dot, x);
+                Canvas.SetTop(dot, y);
+                Shapes.Add(dot);
+            }
+        }
+
+        private void StartCrayon(Point pos, Color color, double size)
+        {
+            for (int i = 0; i < 12; i++)
+            {
+                var line = new Line
+                {
+                    X1 = pos.X + _rand.NextDouble() * size - size / 2,
+                    Y1 = pos.Y + _rand.NextDouble() * size - size / 2,
+                    X2 = pos.X + _rand.NextDouble() * size - size / 2,
+                    Y2 = pos.Y + _rand.NextDouble() * size - size / 2,
+                    Stroke = new SolidColorBrush(Color.FromArgb((byte)_rand.Next(80, 200), color.R, color.G, color.B)),
+                    StrokeThickness = 1.0
+                };
+                Shapes.Add(line);
+            }
+        }
+
+        private void StartPencil(Point pos, Color color, double size)
+        {
+            // many tiny jittered strokes to simulate pencil
+            for (int i = 0; i < 3; i++)
+            {
+                var line = new Line
+                {
+                    X1 = pos.X + _rand.NextDouble() * 1.5 - 0.75,
+                    Y1 = pos.Y + _rand.NextDouble() * 1.5 - 0.75,
+                    X2 = pos.X + _rand.NextDouble() * 1.5 - 0.75,
+                    Y2 = pos.Y + _rand.NextDouble() * 1.5 - 0.75,
+                    Stroke = new SolidColorBrush(Color.FromArgb((byte)_rand.Next(90, 220), color.R, color.G, color.B)),
+                    StrokeThickness = Math.Max(0.5, size * 0.6)
+                };
+                Shapes.Add(line);
+            }
         }
     }
 }
