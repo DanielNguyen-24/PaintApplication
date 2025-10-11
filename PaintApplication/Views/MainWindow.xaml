@@ -1,15 +1,16 @@
-﻿<Window x:Class="PaintApplication.Views.MainWindow"
+<ribbon:RibbonWindow x:Class="PaintApplication.Views.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ribbon="clr-namespace:System.Windows.Controls.Ribbon;assembly=System.Windows.Controls.Ribbon"
         xmlns:vm="clr-namespace:PaintApplication.ViewModels"
         xmlns:views="clr-namespace:PaintApplication.Views"
         Title="Paint Application"
         Height="700" Width="1100"
         WindowStartupLocation="CenterScreen">
 
-    <Window.DataContext>
+    <ribbon:RibbonWindow.DataContext>
         <vm:MainViewModel />
-    </Window.DataContext>
+    </ribbon:RibbonWindow.DataContext>
 
     <DockPanel>
         <!-- Menu -->
@@ -34,8 +35,7 @@
         <!-- StatusBar (luôn dưới cùng, nằm ngang) -->
         <StatusBar DockPanel.Dock="Bottom">
             <StatusBarItem>
-                <TextBlock Text="{Binding Canvas.MousePosition,
-                                          StringFormat='X={0:0}, Y={1:0}'}" />
+                <TextBlock Text="{Binding Canvas.MousePositionDisplay}" />
             </StatusBarItem>
             <Separator/>
             <StatusBarItem>
@@ -47,4 +47,4 @@
         <!-- Canvas chiếm phần giữa -->
         <views:CanvasView DataContext="{Binding Canvas}" />
     </DockPanel>
-</Window>
+</ribbon:RibbonWindow>
