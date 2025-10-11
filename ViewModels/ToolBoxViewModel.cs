@@ -16,9 +16,17 @@ namespace PaintApplication.ViewModels
             get => _selectedTool;
             set
             {
-                if (SetProperty(ref _selectedTool, value) && value != ToolType.Select)
+                if (SetProperty(ref _selectedTool, value))
                 {
-                    Canvas?.ClearSelection();
+                    if (value != ToolType.Select)
+                    {
+                        Canvas?.ClearSelection();
+                    }
+
+                    if (value != ToolType.Shape && SelectedShape != ShapeType.None)
+                    {
+                        SelectedShape = ShapeType.None;
+                    }
                 }
             }
         }

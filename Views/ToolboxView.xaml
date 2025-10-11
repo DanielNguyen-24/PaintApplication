@@ -35,14 +35,19 @@
                 <!-- Tools -->
                 <RibbonGroup Header="Tools" Background="#FF272727" Width="200">
                     <RibbonToggleButton Label="Pencil"
+                                        Command="{Binding PencilCommand}"
                                         IsChecked="{Binding SelectedTool, Converter={StaticResource EnumEqualsConverter}, ConverterParameter=Pencil, Mode=TwoWay}" />
                     <RibbonToggleButton Label="Eraser"
+                                        Command="{Binding EraserCommand}"
                                         IsChecked="{Binding SelectedTool, Converter={StaticResource EnumEqualsConverter}, ConverterParameter=Eraser, Mode=TwoWay}" />
                     <RibbonToggleButton Label="Fill"
+                                        Command="{Binding FillCommand}"
                                         IsChecked="{Binding SelectedTool, Converter={StaticResource EnumEqualsConverter}, ConverterParameter=Fill, Mode=TwoWay}" />
                     <RibbonToggleButton Label="Text"
+                                        Command="{Binding TextCommand}"
                                         IsChecked="{Binding SelectedTool, Converter={StaticResource EnumEqualsConverter}, ConverterParameter=Text, Mode=TwoWay}" />
                     <RibbonToggleButton Label="Magnifier"
+                                        Command="{Binding MagnifierCommand}"
                                         IsChecked="{Binding SelectedTool, Converter={StaticResource EnumEqualsConverter}, ConverterParameter=Magnifier, Mode=TwoWay}" />
                 </RibbonGroup>
 

@@ -14,7 +14,26 @@ namespace PaintApplication.ViewModels
         public ToolType SelectedTool
         {
             get => _selectedTool;
-            set => SetProperty(ref _selectedTool, value);
+            set
+            {
+                if (SetProperty(ref _selectedTool, value))
+                {
+                    if (value != ToolType.Shape && SelectedShape != ShapeType.None)
+                    {
+                        SelectedShape = ShapeType.None;
+                    }
+
+                    if (value != ToolType.Brush && SelectedBrushOption != null)
+                    {
+                        foreach (var brush in Brushes)
+                        {
+                            brush.IsSelected = brush.Type == SelectedBrush;
+                        }
+                        SelectedBrushOption = Brushes.FirstOrDefault(b => b.Type == SelectedBrush);
+                        OnPropertyChanged(nameof(SelectedBrushDisplayName));
+                    }
+                }
+            }
         }
 
         private ShapeType _selectedShape = ShapeType.None;
