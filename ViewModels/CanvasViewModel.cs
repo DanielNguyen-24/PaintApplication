@@ -32,8 +32,16 @@ namespace PaintApplication.ViewModels
         public Point MousePosition
         {
             get => _mousePosition;
-            set => SetProperty(ref _mousePosition, value);
+            set
+            {
+                if (SetProperty(ref _mousePosition, value))
+                {
+                    OnPropertyChanged(nameof(MousePositionDisplay));
+                }
+            }
         }
+
+        public string MousePositionDisplay => $"X={MousePosition.X:0}, Y={MousePosition.Y:0}";
 
         private double _brushSize = 2; // giá trị mặc định
         public double BrushSize
