@@ -32,8 +32,16 @@ namespace PaintApplication.ViewModels
         public Point MousePosition
         {
             get => _mousePosition;
-            set => SetProperty(ref _mousePosition, value);
+            set
+            {
+                if (SetProperty(ref _mousePosition, value))
+                {
+                    OnPropertyChanged(nameof(MousePositionDisplay));
+                }
+            }
         }
+
+        public string MousePositionDisplay => $"X={MousePosition.X:0}, Y={MousePosition.Y:0}";
 
         private double _brushSize = 2; // giá trị mặc định
         public double BrushSize
@@ -41,7 +49,6 @@ namespace PaintApplication.ViewModels
             get => _brushSize;
             set => SetProperty(ref _brushSize, value);
         }
-        private Ellipse _brushPreview;
 
 
         public int CanvasWidth { get; private set; } = 1000;
@@ -115,73 +122,7 @@ namespace PaintApplication.ViewModels
                     break;
 
                 case ToolType.Brush:
-                    switch (_toolbox.SelectedBrush)
-                    {
-                        case BrushType.Brush:
-                            StartPolyline(color, thickness, ShapeType.None);
-                            break;
-
-                        case BrushType.CalligraphyBrush:
-                            _currentLine = new Polyline
-                            {
-                                Stroke = new SolidColorBrush(color),
-                                StrokeThickness = thickness * 1.5,
-                                StrokeStartLineCap = PenLineCap.Triangle,
-                                StrokeEndLineCap = PenLineCap.Triangle,
-                                StrokeLineJoin = PenLineJoin.Bevel
-                            };
-                            Shapes.Add(_currentLine);
-                            break;
-
-                        case BrushType.CalligraphyPen:
-                            StartPolyline(color, thickness * 0.7, ShapeType.None);
-                            break;
-
-                        case BrushType.Airbrush:
-                            StartAirbrush(pos, color, thickness);
-                            break;
-
-                        case BrushType.OilBrush:
-                            _currentLine = new Polyline
-                            {
-                                Stroke = new SolidColorBrush(Color.FromArgb(200, color.R, color.G, color.B)),
-                                StrokeThickness = thickness * 2,
-                                StrokeLineJoin = PenLineJoin.Round
-                            };
-                            Shapes.Add(_currentLine);
-                            break;
-
-                        case BrushType.Crayon:
-                            StartCrayon(pos, color, thickness);
-                            break;
-
-                        case BrushType.Marker:
-                            _currentLine = new Polyline
-                            {
-                                Stroke = new SolidColorBrush(Color.FromArgb(100, color.R, color.G, color.B)),
-                                StrokeThickness = thickness * 3,
-                                StrokeLineJoin = PenLineJoin.Round
-                            };
-                            Shapes.Add(_currentLine);
-                            break;
-
-                        case BrushType.NaturalPencil:
-                            StartPencil(pos, color, thickness);
-                            break;
-
-                        case BrushType.WatercolorBrush:
-                            // watercolor dùng ellipse trong suốt thay vì polyline
-                            var dot = new Ellipse
-                            {
-                                Width = thickness * 2,
-                                Height = thickness,
-                                Fill = new SolidColorBrush(Color.FromArgb(60, color.R, color.G, color.B))
-                            };
-                            Canvas.SetLeft(dot, pos.X - thickness);
-                            Canvas.SetTop(dot, pos.Y - thickness / 2);
-                            Shapes.Add(dot);
-                            break;
-                    }
+                    BeginBrushStroke(pos, color, thickness);
                     break;
             }
         }
@@ -189,8 +130,14 @@ namespace PaintApplication.ViewModels
         private void OnMouseMove(Point pos)
         {
             MousePosition = pos;
+
+            if (Mouse.LeftButton != MouseButtonState.Pressed)
+            {
+                return;
+            }
+
             var color = _toolbox.SelectedColor;
-            Random rand = new Random();
+            var thickness = (BrushSize > 0) ? BrushSize : _toolbox.Thickness;
 
             switch (_toolbox.SelectedTool)
             {
@@ -205,46 +152,7 @@ namespace PaintApplication.ViewModels
                     break;
 
                 case ToolType.Brush:
-                    switch (_toolbox.SelectedBrush)
-                    {
-                        case BrushType.Brush:
-                            StartBrush(pos, color, BrushSize);
-                            break;
-
-                        case BrushType.CalligraphyBrush:
-                            StartCalligraphyBrush(pos, color, BrushSize);
-                            break;
-
-                        case BrushType.CalligraphyPen:
-                            StartCalligraphyPen(pos, color, BrushSize);
-                            break;
-
-                        case BrushType.Airbrush:
-                            StartAirbrush(pos, color, BrushSize);
-                            break;
-
-                        case BrushType.OilBrush:
-                            StartOilBrush(pos, color);
-                            break;
-
-                        case BrushType.Crayon:
-                            StartCrayon(pos, color, BrushSize);
-                            break;
-
-                        case BrushType.Marker:
-                            StartMarker(pos, color, BrushSize);
-                            break;
-
-                        case BrushType.NaturalPencil:
-                            StartNaturalPencil(pos, color, BrushSize);
-                            break;
-
-                        case BrushType.WatercolorBrush:
-                            StartWatercolor(pos, color, BrushSize);
-                            break;
-
-
-                    }
+                    UpdateBrushStroke(pos, color, thickness);
                     break;
             }
         }
@@ -310,6 +218,130 @@ namespace PaintApplication.ViewModels
         }
 
         // ========== Hỗ trợ vẽ ==========
+        private void BeginBrushStroke(Point pos, Color color, double thickness)
+        {
+            switch (_toolbox.SelectedBrush)
+            {
+                case BrushType.Brush:
+                    StartPolyline(color, thickness, ShapeType.None);
+                    break;
+
+                case BrushType.CalligraphyBrush:
+                    _currentLine = BeginPolylineStroke(color, thickness * 1.5, PenLineJoin.Bevel, PenLineCap.Triangle, PenLineCap.Triangle);
+                    break;
+
+                case BrushType.CalligraphyPen:
+                    _currentLine = BeginPolylineStroke(color, thickness * 0.7, PenLineJoin.Round, PenLineCap.Flat, PenLineCap.Flat);
+                    break;
+
+                case BrushType.Airbrush:
+                    ScatterBrushStroke(pos, color, thickness);
+                    break;
+
+                case BrushType.OilBrush:
+                    _currentLine = BeginPolylineStroke(Color.FromArgb(200, color.R, color.G, color.B), thickness * 2, PenLineJoin.Round);
+                    break;
+
+                case BrushType.Crayon:
+                    ScatterBrushStroke(pos, color, thickness);
+                    break;
+
+                case BrushType.Marker:
+                    _currentLine = BeginPolylineStroke(Color.FromArgb(100, color.R, color.G, color.B), thickness * 3, PenLineJoin.Round, PenLineCap.Square, PenLineCap.Square);
+                    break;
+
+                case BrushType.NaturalPencil:
+                case BrushType.WatercolorBrush:
+                    ScatterBrushStroke(pos, color, thickness);
+                    break;
+            }
+        }
+
+        private void UpdateBrushStroke(Point pos, Color color, double thickness)
+        {
+            switch (_toolbox.SelectedBrush)
+            {
+                case BrushType.Brush:
+                case BrushType.CalligraphyBrush:
+                case BrushType.CalligraphyPen:
+                case BrushType.Marker:
+                    AddPointToCurrentLine(pos, color, thickness);
+                    break;
+
+                case BrushType.OilBrush:
+                    if (_currentLine == null)
+                    {
+                        BeginBrushStroke(pos, color, thickness);
+                    }
+                    else
+                    {
+                        if (_currentLine.Stroke is SolidColorBrush stroke)
+                        {
+                            byte alpha = (byte)_rand.Next(150, 220);
+                            stroke.Color = Color.FromArgb(alpha, color.R, color.G, color.B);
+                        }
+                        _currentLine.Points.Add(pos);
+                    }
+                    break;
+
+                case BrushType.Airbrush:
+                case BrushType.Crayon:
+                case BrushType.NaturalPencil:
+                case BrushType.WatercolorBrush:
+                    ScatterBrushStroke(pos, color, thickness);
+                    break;
+            }
+        }
+
+        private void AddPointToCurrentLine(Point pos, Color color, double thickness)
+        {
+            if (_currentLine == null)
+            {
+                BeginBrushStroke(pos, color, thickness);
+            }
+            else
+            {
+                _currentLine.Points.Add(pos);
+            }
+        }
+
+        private void ScatterBrushStroke(Point pos, Color color, double thickness)
+        {
+            switch (_toolbox.SelectedBrush)
+            {
+                case BrushType.Airbrush:
+                    StartAirbrush(pos, color, thickness);
+                    break;
+
+                case BrushType.Crayon:
+                    StartCrayon(pos, color, thickness);
+                    break;
+
+                case BrushType.NaturalPencil:
+                    StartNaturalPencil(pos, color, thickness);
+                    break;
+
+                case BrushType.WatercolorBrush:
+                    StartWatercolor(pos, color, thickness);
+                    break;
+            }
+        }
+
+        private Polyline BeginPolylineStroke(Color color, double thickness, PenLineJoin lineJoin = PenLineJoin.Round, PenLineCap startCap = PenLineCap.Round, PenLineCap endCap = PenLineCap.Round)
+        {
+            var line = new Polyline
+            {
+                Stroke = new SolidColorBrush(color),
+                StrokeThickness = thickness,
+                StrokeLineJoin = lineJoin,
+                StrokeStartLineCap = startCap,
+                StrokeEndLineCap = endCap
+            };
+            line.Points.Add(_startPoint);
+            Shapes.Add(line);
+            return line;
+        }
+
         private void StartPolyline(Color color, double thickness, ShapeType type)
         {
             _currentLine = new Polyline
@@ -1205,53 +1237,6 @@ namespace PaintApplication.ViewModels
                     break;
             }
         }
-        private void StartBrush(Point pos, Color color, double size)
-        {
-            for (int i = 0; i < 3; i++) // vài lớp chồng
-            {
-                var ell = new Ellipse
-                {
-                    Width = size - i,
-                    Height = size - i,
-                    Fill = new SolidColorBrush(Color.FromArgb(
-                        (byte)(255 - i * 60), color.R, color.G, color.B))
-                };
-                Canvas.SetLeft(ell, pos.X - (size - i) / 2);
-                Canvas.SetTop(ell, pos.Y - (size - i) / 2);
-                Shapes.Add(ell);
-            }
-        }
-        private void StartCalligraphyBrush(Point pos, Color color, double size)
-        {
-            // to bản, nghiêng
-            var rect = new Rectangle
-            {
-                Width = size * 2,
-                Height = size / 2,
-                Fill = new SolidColorBrush(color),
-                RenderTransform = new RotateTransform(-30, size, size / 4)
-            };
-            Canvas.SetLeft(rect, pos.X - size);
-            Canvas.SetTop(rect, pos.Y - size / 4);
-            Shapes.Add(rect);
-        }
-
-        private void StartCalligraphyPen(Point pos, Color color, double size)
-        {
-            // mảnh hơn, nghiêng nhẹ
-            var rect = new Rectangle
-            {
-                Width = size * 1.5,
-                Height = size / 4,
-                Fill = new SolidColorBrush(color),
-                RenderTransform = new RotateTransform(-20, size, size / 8)
-            };
-            Canvas.SetLeft(rect, pos.X - size * 0.75);
-            Canvas.SetTop(rect, pos.Y - size / 8);
-            Shapes.Add(rect);
-        }
-
-
         private void StartAirbrush(Point pos, Color color, double size)
         {
             int dots = (int)(size * 8);
@@ -1275,17 +1260,6 @@ namespace PaintApplication.ViewModels
             }
         }
 
-        private void StartOilBrush(Point pos, Color color)
-        {
-            if (_currentLine != null)
-            {
-                byte alpha = (byte)_rand.Next(150, 220);
-                (_currentLine.Stroke as SolidColorBrush).Color =
-                    Color.FromArgb(alpha, color.R, color.G, color.B);
-                _currentLine.Points.Add(pos);
-            }
-        }
-
         private void StartCrayon(Point pos, Color color, double size)
         {
             for (int i = 0; i < 6; i++)
@@ -1303,21 +1277,6 @@ namespace PaintApplication.ViewModels
                 Shapes.Add(line);
             }
         }
-
-
-        private void StartMarker(Point pos, Color color, double size)
-        {
-            var marker = new Rectangle
-            {
-                Width = size * 2,
-                Height = size,
-                Fill = new SolidColorBrush(Color.FromArgb(100, color.R, color.G, color.B))
-            };
-            Canvas.SetLeft(marker, pos.X - size);
-            Canvas.SetTop(marker, pos.Y - size / 2);
-            Shapes.Add(marker);
-        }
-
 
         private void StartNaturalPencil(Point pos, Color color, double size)
         {
@@ -1355,25 +1314,5 @@ namespace PaintApplication.ViewModels
                 }
             }
         }
-
-
-        private void StartPencil(Point pos, Color color, double size)
-        {
-            // many tiny jittered strokes to simulate pencil
-            for (int i = 0; i < 3; i++)
-            {
-                var line = new Line
-                {
-                    X1 = pos.X + _rand.NextDouble() * 1.5 - 0.75,
-                    Y1 = pos.Y + _rand.NextDouble() * 1.5 - 0.75,
-                    X2 = pos.X + _rand.NextDouble() * 1.5 - 0.75,
-                    Y2 = pos.Y + _rand.NextDouble() * 1.5 - 0.75,
-                    Stroke = new SolidColorBrush(Color.FromArgb((byte)_rand.Next(90, 220), color.R, color.G, color.B)),
-                    StrokeThickness = Math.Max(0.5, size * 0.6)
-                };
-                Shapes.Add(line);
-            }
-        }
-        
     }
 }

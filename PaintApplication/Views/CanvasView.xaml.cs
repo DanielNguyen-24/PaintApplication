@@ -95,8 +95,7 @@ namespace PaintApplication.Views
 
         private void Canvas_MouseMove(object sender, MouseEventArgs e)
         {
-            if (e.LeftButton == MouseButtonState.Pressed)
-                VM?.MouseMoveCommand.Execute(e.GetPosition(PART_Canvas));
+            VM?.MouseMoveCommand.Execute(e.GetPosition(PART_Canvas));
         }
 
         private void Canvas_MouseUp(object sender, MouseButtonEventArgs e)
