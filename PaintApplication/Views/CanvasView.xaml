@@ -1,18 +1,18 @@
-﻿<UserControl x:Class="PaintApplication.Views.CanvasView"
+<UserControl x:Class="PaintApplication.Views.CanvasView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              mc:Ignorable="d">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+    </UserControl.Resources>
     <Grid Background="DarkGray">
         <Grid.ColumnDefinitions>
-            <!-- Cột trái cho Slider -->
             <ColumnDefinition Width="Auto"/>
-            <!-- Cột phải cho Canvas -->
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
-        <!-- Thanh trượt chỉnh nét vẽ -->
         <Slider Minimum="1"
                 Maximum="50"
                 Value="{Binding BrushSize, Mode=TwoWay}"
@@ -20,12 +20,39 @@
                 VerticalAlignment="Stretch"
                 Margin="20"/>
 
-        <!-- Canvas nền để bắt event chuột -->
-        <Canvas x:Name="PART_Canvas" Width="900" Height="450"
-                Grid.Column="1"
-                Background="White"
-                MouseDown="Canvas_MouseDown"
-                MouseMove="Canvas_MouseMove"
-                MouseUp="Canvas_MouseUp" />
+        <ScrollViewer Grid.Column="1"
+                      Background="Transparent"
+                      HorizontalScrollBarVisibility="Auto"
+                      VerticalScrollBarVisibility="Auto">
+            <Grid x:Name="PART_ZoomHost" Background="White">
+                <Grid.LayoutTransform>
+                    <ScaleTransform x:Name="PART_ScaleTransform" />
+                </Grid.LayoutTransform>
+
+                <Canvas x:Name="PART_Canvas"
+                        Width="{Binding CanvasWidth}"
+                        Height="{Binding CanvasHeight}"
+                        Background="White"
+                        MouseDown="Canvas_MouseDown"
+                        MouseMove="Canvas_MouseMove"
+                        MouseUp="Canvas_MouseUp" />
+
+                <Canvas x:Name="SelectionCanvas"
+                        Width="{Binding CanvasWidth}"
+                        Height="{Binding CanvasHeight}"
+                        IsHitTestVisible="False"
+                        Background="Transparent">
+                    <Rectangle Stroke="#FF1E90FF"
+                               StrokeThickness="1"
+                               StrokeDashArray="4,2"
+                               Fill="#40FFFFFF"
+                               Visibility="{Binding HasSelection, Converter={StaticResource BoolToVisibilityConverter}}"
+                               Width="{Binding SelectionRect.Width}"
+                               Height="{Binding SelectionRect.Height}"
+                               Canvas.Left="{Binding SelectionRect.X}"
+                               Canvas.Top="{Binding SelectionRect.Y}" />
+                </Canvas>
+            </Grid>
+        </ScrollViewer>
     </Grid>
 </UserControl>

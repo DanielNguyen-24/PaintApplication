@@ -18,6 +18,11 @@ namespace PaintApplication.ViewModels
             {
                 if (SetProperty(ref _selectedTool, value))
                 {
+                    if (value != ToolType.Select)
+                    {
+                        Canvas?.ClearSelection();
+                    }
+
                     if (value != ToolType.Shape && SelectedShape != ShapeType.None)
                     {
                         SelectedShape = ShapeType.None;
@@ -142,6 +147,8 @@ namespace PaintApplication.ViewModels
         public ICommand SelectBrushCommand { get; }
         public ICommand SelectColorCommand { get; }
 
+        internal CanvasViewModel? Canvas { get; set; }
+
         public ToolboxViewModel()
         {
             SelectCommand = new RelayCommand(_ => SelectedTool = ToolType.Select);
@@ -213,8 +220,24 @@ namespace PaintApplication.ViewModels
             OnPropertyChanged(nameof(SelectedBrushDisplayName));
         }
 
-        public void DoCrop() { /* logic cắt ảnh */ }
-        public void DoRotate() { /* logic xoay ảnh */ }
+        public void DoCrop()
+        {
+            if (Canvas == null)
+                return;
+
+            if (!Canvas.HasSelection)
+            {
+                SelectedTool = ToolType.Select;
+                return;
+            }
+
+            Canvas.CropSelection();
+        }
+
+        public void DoRotate()
+        {
+            Canvas?.RotateCanvas90();
+        }
         public void DoOpenColorPicker() { /* mở popup chọn màu */ }
         public void DoAI() { /* gọi AI */ }
         public void DoLayers() { /* quản lý layers */ }
