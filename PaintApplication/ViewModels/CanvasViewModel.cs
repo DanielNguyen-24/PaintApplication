@@ -315,7 +315,7 @@ namespace PaintApplication.ViewModels
             _activeTextBox = null;
         }
 
-        private static void CleanupTextHandlers(TextBox textBox)
+        private void CleanupTextHandlers(TextBox textBox)
         {
             textBox.LostFocus -= TextBox_LostFocus;
             textBox.KeyDown -= TextBox_KeyDown;
