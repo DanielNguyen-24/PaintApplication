@@ -39,12 +39,15 @@
             </StatusBarItem>
             <Separator/>
             <StatusBarItem>
-                <TextBlock Text="{Binding ZoomLevel,
-                                          StringFormat='Zoom: {0}%'}" />
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Content="-" Width="24" Margin="0,0,4,0" Command="{Binding ZoomOutCommand}" />
+                    <TextBlock Text="{Binding ZoomLevel, StringFormat='Zoom: {0}%'}" VerticalAlignment="Center" />
+                    <Button Content="+" Width="24" Margin="4,0,0,0" Command="{Binding ZoomInCommand}" />
+                </StackPanel>
             </StatusBarItem>
         </StatusBar>
 
         <!-- Canvas chiếm phần giữa -->
-        <views:CanvasView DataContext="{Binding Canvas}" />
+        <views:CanvasView DataContext="{Binding Canvas}" ZoomLevel="{Binding ZoomLevel, Mode=TwoWay}" />
     </DockPanel>
 </ribbon:RibbonWindow>

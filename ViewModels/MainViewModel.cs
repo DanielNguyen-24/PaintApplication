@@ -27,11 +27,16 @@ namespace PaintApplication.ViewModels
         public ICommand ExitCommand { get; }
         public ICommand UndoCommand { get; }
         public ICommand RedoCommand { get; }
+        public ICommand ZoomInCommand { get; }
+        public ICommand ZoomOutCommand { get; }
+        public ICommand ResetZoomCommand { get; }
 
         public MainViewModel()
         {
             Toolbox = new ToolboxViewModel();
             Canvas = new CanvasViewModel(Toolbox);
+            Toolbox.Canvas = Canvas;
+            Canvas.ZoomRequested += delta => ChangeZoom(delta);
 
             // Menu commands
             NewFileCommand = new RelayCommand(_ => DoNewFile());
@@ -42,12 +47,18 @@ namespace PaintApplication.ViewModels
             // Undo/Redo → gọi sang CanvasViewModel
             UndoCommand = new RelayCommand(_ => Canvas.Undo());
             RedoCommand = new RelayCommand(_ => Canvas.Redo());
+
+            ZoomInCommand = new RelayCommand(_ => ChangeZoom(10));
+            ZoomOutCommand = new RelayCommand(_ => ChangeZoom(-10));
+            ResetZoomCommand = new RelayCommand(_ => ZoomLevel = 100);
         }
 
         private void DoNewFile()
         {
             Canvas.Shapes.Clear();
             Layers.Clear();
+            Canvas.ClearSelection();
+            ZoomLevel = 100;
         }
 
         private void DoOpenFile()
@@ -79,6 +90,14 @@ namespace PaintApplication.ViewModels
         private void DoExit()
         {
             System.Windows.Application.Current.Shutdown();
+        }
+
+        private void ChangeZoom(double delta)
+        {
+            double newZoom = ZoomLevel + delta;
+            if (newZoom < 10) newZoom = 10;
+            if (newZoom > 400) newZoom = 400;
+            ZoomLevel = newZoom;
         }
     }
 }
