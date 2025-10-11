@@ -26,6 +26,8 @@ namespace PaintApplication.ViewModels
         private event Action? StateChanged;
 
         private readonly Random _rand = new Random();
+        private TextBox? _activeTextBox;
+        private bool _shouldPushStateOnMouseUp = true;
 
         // Mouse position hiển thị ở StatusBar
         private Point _mousePosition;
@@ -94,6 +96,9 @@ namespace PaintApplication.ViewModels
         private void OnMouseDown(Point pos)
         {
             _startPoint = pos;
+            CommitActiveTextBox();
+            _shouldPushStateOnMouseUp = true;
+
             var color = _toolbox.SelectedColor;
             var thickness = (BrushSize > 0) ? BrushSize : _toolbox.Thickness;
 
@@ -115,11 +120,13 @@ namespace PaintApplication.ViewModels
                     DoFloodFill(pos, _toolbox.SelectedColor);
                     PushUndoState();
                     StateChanged?.Invoke();
+                    _shouldPushStateOnMouseUp = false;
                     break;
 
                 case ToolType.Text:
-                    // TODO: add TextBox creation
-                    break;
+                    StartTextInput(pos);
+                    _shouldPushStateOnMouseUp = false;
+                    return;
 
                 case ToolType.Brush:
                     BeginBrushStroke(pos, color, thickness);
@@ -183,9 +190,135 @@ namespace PaintApplication.ViewModels
             _currentLine = null;
             _currentShape = null;
 
-            // Lưu trạng thái để Undo/Redo
-            PushUndoState();
-            StateChanged?.Invoke();
+            if (_shouldPushStateOnMouseUp)
+            {
+                // Lưu trạng thái để Undo/Redo
+                PushUndoState();
+                StateChanged?.Invoke();
+            }
+        }
+
+        private void CommitActiveTextBox()
+        {
+            if (_activeTextBox != null)
+            {
+                CommitText(_activeTextBox);
+            }
+        }
+
+        private void StartTextInput(Point pos)
+        {
+            var brush = new SolidColorBrush(_toolbox.SelectedColor);
+            var textBox = new TextBox
+            {
+                MinWidth = 120,
+                MinHeight = 30,
+                Background = Brushes.Transparent,
+                BorderBrush = brush,
+                Foreground = brush,
+                BorderThickness = new Thickness(1),
+                Padding = new Thickness(4),
+                AcceptsReturn = true,
+                TextWrapping = TextWrapping.Wrap,
+                FontFamily = new FontFamily(_toolbox.SelectedFontFamily),
+                FontSize = _toolbox.FontSize,
+                Tag = "CanvasTextInput"
+            };
+
+            Canvas.SetLeft(textBox, pos.X);
+            Canvas.SetTop(textBox, pos.Y);
+
+            textBox.LostFocus += TextBox_LostFocus;
+            textBox.KeyDown += TextBox_KeyDown;
+
+            _activeTextBox = textBox;
+            Shapes.Add(textBox);
+        }
+
+        private void TextBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (sender is TextBox textBox)
+            {
+                if (e.Key == Key.Enter && Keyboard.Modifiers == ModifierKeys.None)
+                {
+                    e.Handled = true;
+                    CommitText(textBox);
+                }
+                else if (e.Key == Key.Escape)
+                {
+                    e.Handled = true;
+                    CancelText(textBox);
+                }
+            }
+        }
+
+        private void TextBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (sender is TextBox textBox)
+            {
+                CommitText(textBox);
+            }
+        }
+
+        private void CommitText(TextBox textBox)
+        {
+            CleanupTextHandlers(textBox);
+
+            if (!Shapes.Contains(textBox))
+                return;
+
+            _activeTextBox = null;
+
+            var left = Canvas.GetLeft(textBox);
+            if (double.IsNaN(left)) left = 0;
+            var top = Canvas.GetTop(textBox);
+            if (double.IsNaN(top)) top = 0;
+
+            Shapes.Remove(textBox);
+
+            if (!string.IsNullOrWhiteSpace(textBox.Text))
+            {
+                var brush = textBox.Foreground is SolidColorBrush solid
+                    ? (Brush)solid.CloneCurrentValue()
+                    : textBox.Foreground?.CloneCurrentValue() ?? Brushes.Black;
+
+                var textBlock = new TextBlock
+                {
+                    Text = textBox.Text,
+                    Foreground = brush,
+                    FontFamily = textBox.FontFamily,
+                    FontSize = textBox.FontSize,
+                    TextWrapping = TextWrapping.Wrap,
+                    Background = Brushes.Transparent,
+                    Padding = textBox.Padding,
+                    Tag = "CanvasText"
+                };
+
+                Canvas.SetLeft(textBlock, left);
+                Canvas.SetTop(textBlock, top);
+
+                Shapes.Add(textBlock);
+                PushUndoState();
+                StateChanged?.Invoke();
+            }
+        }
+
+        private void CancelText(TextBox textBox)
+        {
+            CleanupTextHandlers(textBox);
+
+            if (Shapes.Contains(textBox))
+            {
+                Shapes.Remove(textBox);
+            }
+
+            _activeTextBox = null;
+        }
+
+        private static void CleanupTextHandlers(TextBox textBox)
+        {
+            textBox.LostFocus -= TextBox_LostFocus;
+            textBox.KeyDown -= TextBox_KeyDown;
         }
 
         // ========== Undo/Redo ==========

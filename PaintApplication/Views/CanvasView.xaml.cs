@@ -1,14 +1,16 @@
-﻿using System.Collections.Specialized;
+﻿using System;
+using System.Collections.Specialized;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Threading;
 using PaintApplication.ViewModels;
 
 namespace PaintApplication.Views
 {
     public partial class CanvasView : UserControl
     {
-        private CanvasViewModel VM => DataContext as CanvasViewModel;
+        private CanvasViewModel? VM => DataContext as CanvasViewModel;
 
         public CanvasView()
         {
@@ -40,7 +42,7 @@ namespace PaintApplication.Views
             HookupCollection();
         }
 
-        private void UnhookOld(CanvasViewModel oldVm)
+        private void UnhookOld(CanvasViewModel? oldVm)
         {
             if (oldVm == null) return;
             oldVm.Shapes.CollectionChanged -= Shapes_CollectionChanged;
@@ -66,7 +68,18 @@ namespace PaintApplication.Views
             if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems != null)
             {
                 foreach (UIElement el in e.NewItems)
+                {
                     PART_Canvas.Children.Add(el);
+
+                    if (el is TextBox textBox && Equals(textBox.Tag, "CanvasTextInput"))
+                    {
+                        Dispatcher.BeginInvoke(new Action(() =>
+                        {
+                            textBox.Focus();
+                            textBox.CaretIndex = textBox.Text.Length;
+                        }), DispatcherPriority.Background);
+                    }
+                }
             }
             else if (e.Action == NotifyCollectionChangedAction.Remove && e.OldItems != null)
             {
@@ -90,12 +103,20 @@ namespace PaintApplication.Views
 
         private void Canvas_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            VM?.MouseDownCommand.Execute(e.GetPosition(PART_Canvas));
+            if (VM == null) return;
+
+            var position = e.GetPosition(PART_Canvas);
+            VM.MousePosition = position;
+            VM.MouseDownCommand.Execute(position);
         }
 
         private void Canvas_MouseMove(object sender, MouseEventArgs e)
         {
-            VM?.MouseMoveCommand.Execute(e.GetPosition(PART_Canvas));
+            if (VM == null) return;
+
+            var position = e.GetPosition(PART_Canvas);
+            VM.MousePosition = position;
+            VM.MouseMoveCommand.Execute(position);
         }
 
         private void Canvas_MouseUp(object sender, MouseButtonEventArgs e)
