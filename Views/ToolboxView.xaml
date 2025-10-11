@@ -48,7 +48,9 @@
 
                 <!-- Brushes -->
                 <RibbonGroup Header="Brushes" Background="#FF272727">
-                    <RibbonSplitButton Label="Brushes" Background="#FF272727">
+                    <RibbonSplitButton Label="Brushes"
+                                        Background="#FF272727"
+                                        Command="{Binding BrushCommand}">
                         <RibbonSplitButton.ItemsSource>
                             <Binding Path="Brushes"/>
                         </RibbonSplitButton.ItemsSource>
@@ -60,12 +62,14 @@
                                 </StackPanel>
                             </DataTemplate>
                         </RibbonSplitButton.ItemTemplate>
-                        <RibbonSplitButton.Command>
-                            <Binding Path="SelectBrushCommand"/>
-                        </RibbonSplitButton.Command>
-                        <RibbonSplitButton.CommandParameter>
-                            <Binding/>
-                        </RibbonSplitButton.CommandParameter>
+                        <RibbonSplitButton.ItemContainerStyle>
+                            <Style TargetType="ribbon:RibbonMenuItem">
+                                <Setter Property="Command"
+                                        Value="{Binding DataContext.SelectBrushCommand,
+                                                        RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                <Setter Property="CommandParameter" Value="{Binding}"/>
+                            </Style>
+                        </RibbonSplitButton.ItemContainerStyle>
                     </RibbonSplitButton>
                 </RibbonGroup>
 
