@@ -14,8 +14,14 @@ namespace PaintApplication.Views
         private CanvasViewModel? VM => DataContext as CanvasViewModel;
 
         public static readonly DependencyProperty ZoomLevelProperty =
-            DependencyProperty.Register(nameof(ZoomLevel), typeof(double), typeof(CanvasView),
-                new PropertyMetadata(100d, OnZoomLevelChanged));
+            DependencyProperty.Register(
+                nameof(ZoomLevel),
+                typeof(double),
+                typeof(CanvasView),
+                new FrameworkPropertyMetadata(
+                    100d,
+                    FrameworkPropertyMetadataOptions.BindsTwoWayByDefault,
+                    OnZoomLevelChanged));
 
         public double ZoomLevel
         {

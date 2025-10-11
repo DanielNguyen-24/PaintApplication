@@ -57,7 +57,7 @@ namespace PaintApplication.ViewModels
             get => _brushSize;
             set => SetProperty(ref _brushSize, value);
         }
-        private Ellipse _brushPreview;
+        private Ellipse? _brushPreview;
 
 
         private int _canvasWidth = 1000;
