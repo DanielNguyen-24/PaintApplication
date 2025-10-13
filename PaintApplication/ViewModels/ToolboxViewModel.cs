@@ -133,6 +133,21 @@ namespace PaintApplication.ViewModels
         };
 
         public ICommand SelectCommand { get; }
+        private SelectionMode _selectionMode = SelectionMode.Rectangle;
+        public SelectionMode SelectionMode
+        {
+            get => _selectionMode;
+            set
+            {
+                if (SetProperty(ref _selectionMode, value))
+                {
+                    SelectedTool = ToolType.Select;
+                    Canvas?.ClearSelection();
+                }
+            }
+        }
+        public ICommand SelectRectangleSelectionCommand { get; }
+        public ICommand SelectFreeformSelectionCommand { get; }
         public ICommand CropCommand { get; }
         public ICommand RotateCommand { get; }
         public ICommand PencilCommand { get; }
@@ -153,6 +168,8 @@ namespace PaintApplication.ViewModels
         public ToolboxViewModel()
         {
             SelectCommand = new RelayCommand(_ => SelectedTool = ToolType.Select);
+            SelectRectangleSelectionCommand = new RelayCommand(_ => SelectionMode = SelectionMode.Rectangle);
+            SelectFreeformSelectionCommand = new RelayCommand(_ => SelectionMode = SelectionMode.Freeform);
             CropCommand = new RelayCommand(_ => DoCrop());
             RotateCommand = new RelayCommand(_ => DoRotate());
 

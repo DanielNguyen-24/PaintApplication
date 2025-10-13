@@ -36,6 +36,10 @@ namespace PaintApplication.ViewModels
         private bool _hasSelection;
         private bool _cropAfterSelection;
         private bool _lastActionWasUndo;
+        private readonly List<Point> _freeformSelectionPoints = new();
+        private Geometry? _selectionGeometry;
+        private bool _isRectangleSelectionActive;
+        private bool _isFreeformSelectionActive;
 
         // Mouse position hiển thị ở StatusBar
         private Point _mousePosition;
@@ -86,6 +90,24 @@ namespace PaintApplication.ViewModels
         {
             get => _hasSelection;
             private set => SetProperty(ref _hasSelection, value);
+        }
+
+        public Geometry? SelectionGeometry
+        {
+            get => _selectionGeometry;
+            private set => SetProperty(ref _selectionGeometry, value);
+        }
+
+        public bool IsRectangleSelectionActive
+        {
+            get => _isRectangleSelectionActive;
+            private set => SetProperty(ref _isRectangleSelectionActive, value);
+        }
+
+        public bool IsFreeformSelectionActive
+        {
+            get => _isFreeformSelectionActive;
+            private set => SetProperty(ref _isFreeformSelectionActive, value);
         }
 
         public bool CanUndo => _undoStack.Count > 1;
@@ -485,33 +507,70 @@ namespace PaintApplication.ViewModels
             _isSelecting = true;
             _shouldPushStateOnMouseUp = false;
             _selectionStart = pos;
-            SelectionRect = new Rect(pos, new Size(0, 0));
-            HasSelection = false;
+            if (_toolbox.SelectionMode == SelectionMode.Freeform)
+            {
+                _freeformSelectionPoints.Clear();
+                _freeformSelectionPoints.Add(pos);
+                IsFreeformSelectionActive = true;
+                IsRectangleSelectionActive = false;
+                RecalculateFreeformSelection(closeFigure: false);
+            }
+            else
+            {
+                _freeformSelectionPoints.Clear();
+                SelectionGeometry = null;
+                SelectionRect = new Rect(pos, new Size(0, 0));
+                HasSelection = false;
+                IsRectangleSelectionActive = true;
+                IsFreeformSelectionActive = false;
+            }
         }
 
         private void UpdateSelection(Point pos)
         {
             if (!_isSelecting)
                 return;
+            if (_toolbox.SelectionMode == SelectionMode.Freeform)
+            {
+                AddFreeformPoint(pos);
+            }
+            else
+            {
+                double x = Math.Min(_selectionStart.X, pos.X);
+                double y = Math.Min(_selectionStart.Y, pos.Y);
+                double width = Math.Abs(pos.X - _selectionStart.X);
+                double height = Math.Abs(pos.Y - _selectionStart.Y);
 
-            double x = Math.Min(_selectionStart.X, pos.X);
-            double y = Math.Min(_selectionStart.Y, pos.Y);
-            double width = Math.Abs(pos.X - _selectionStart.X);
-            double height = Math.Abs(pos.Y - _selectionStart.Y);
-
-            SelectionRect = new Rect(x, y, width, height);
-            HasSelection = width >= 1 && height >= 1;
+                SelectionRect = new Rect(x, y, width, height);
+                HasSelection = width >= 1 && height >= 1;
+            }
         }
 
         private void EndSelection()
         {
             _isSelecting = false;
+            if (_toolbox.SelectionMode == SelectionMode.Freeform)
+            {
+                AddFreeformPoint(MousePosition);
+                RecalculateFreeformSelection(closeFigure: true);
+            }
+            else
+            {
+                IsRectangleSelectionActive = HasSelection;
+            }
+
             if (!HasSelection)
             {
                 if (_cropAfterSelection)
                 {
                     SelectionRect = new Rect(0, 0, 0, 0);
                     HasSelection = false;
+                    if (_toolbox.SelectionMode == SelectionMode.Freeform)
+                    {
+                        SelectionGeometry = null;
+                        IsFreeformSelectionActive = false;
+                        _freeformSelectionPoints.Clear();
+                    }
                 }
                 else
                 {
@@ -519,6 +578,11 @@ namespace PaintApplication.ViewModels
                 }
 
                 return;
+            }
+
+            if (_toolbox.SelectionMode == SelectionMode.Freeform)
+            {
+                IsFreeformSelectionActive = true;
             }
 
             if (_cropAfterSelection)
@@ -533,10 +597,86 @@ namespace PaintApplication.ViewModels
             _isSelecting = false;
             SelectionRect = new Rect(0, 0, 0, 0);
             HasSelection = false;
+            SelectionGeometry = null;
+            _freeformSelectionPoints.Clear();
+            IsRectangleSelectionActive = false;
+            IsFreeformSelectionActive = false;
             if (cancelCropMode)
             {
                 _cropAfterSelection = false;
             }
+        }
+
+        private void AddFreeformPoint(Point pos)
+        {
+            if (_freeformSelectionPoints.Count > 0)
+            {
+                var last = _freeformSelectionPoints[^1];
+                if (last == pos)
+                    return;
+            }
+
+            _freeformSelectionPoints.Add(pos);
+            RecalculateFreeformSelection(closeFigure: false);
+        }
+
+        private void RecalculateFreeformSelection(bool closeFigure)
+        {
+            if (_freeformSelectionPoints.Count == 0)
+            {
+                SelectionRect = new Rect(_selectionStart, new Size(0, 0));
+                HasSelection = false;
+                SelectionGeometry = null;
+                IsFreeformSelectionActive = false;
+                return;
+            }
+
+            IsFreeformSelectionActive = true;
+
+            double minX = _freeformSelectionPoints[0].X;
+            double minY = _freeformSelectionPoints[0].Y;
+            double maxX = minX;
+            double maxY = minY;
+
+            for (int i = 1; i < _freeformSelectionPoints.Count; i++)
+            {
+                var point = _freeformSelectionPoints[i];
+                if (point.X < minX) minX = point.X;
+                if (point.Y < minY) minY = point.Y;
+                if (point.X > maxX) maxX = point.X;
+                if (point.Y > maxY) maxY = point.Y;
+            }
+
+            double width = Math.Max(0, maxX - minX);
+            double height = Math.Max(0, maxY - minY);
+
+            SelectionRect = new Rect(new Point(minX, minY), new Size(width, height));
+            HasSelection = _freeformSelectionPoints.Count > 2 && width >= 1 && height >= 1;
+
+            if (_freeformSelectionPoints.Count < 2)
+            {
+                SelectionGeometry = null;
+                return;
+            }
+
+            var geometry = new StreamGeometry();
+            using (var ctx = geometry.Open())
+            {
+                bool isClosed = closeFigure && HasSelection;
+                bool isFilled = closeFigure && HasSelection;
+                ctx.BeginFigure(_freeformSelectionPoints[0], isFilled, isClosed);
+                if (_freeformSelectionPoints.Count > 1)
+                {
+                    var segmentPoints = new Point[_freeformSelectionPoints.Count - 1];
+                    for (int i = 1; i < _freeformSelectionPoints.Count; i++)
+                    {
+                        segmentPoints[i - 1] = _freeformSelectionPoints[i];
+                    }
+                    ctx.PolyLineTo(segmentPoints, true, true);
+                }
+            }
+            geometry.Freeze();
+            SelectionGeometry = geometry;
         }
 
         public void BeginCropSelectionMode()

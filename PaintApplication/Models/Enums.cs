@@ -45,6 +45,12 @@ namespace PaintApplication.Models
         Lightning
     }
 
+    public enum SelectionMode
+    {
+        Rectangle,
+        Freeform
+    }
+
 
 }
 
