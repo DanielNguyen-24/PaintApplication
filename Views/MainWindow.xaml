@@ -16,6 +16,14 @@
         <!-- Menu -->
         <Menu DockPanel.Dock="Top"
               ribbon:RibbonWindow.IsHitTestVisibleInChrome="True">
+            <Menu.Resources>
+                <Style TargetType="MenuItem">
+                    <Setter Property="ribbon:RibbonWindow.IsHitTestVisibleInChrome" Value="True" />
+                </Style>
+                <Style TargetType="Separator">
+                    <Setter Property="ribbon:RibbonWindow.IsHitTestVisibleInChrome" Value="True" />
+                </Style>
+            </Menu.Resources>
             <MenuItem Header="_File">
                 <MenuItem Header="_New" Command="{Binding NewFileCommand}" />
                 <MenuItem Header="_Open" Command="{Binding OpenFileCommand}" />
