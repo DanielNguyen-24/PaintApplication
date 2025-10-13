@@ -40,6 +40,11 @@ namespace PaintApplication.ViewModels
         private Geometry? _selectionGeometry;
         private bool _isRectangleSelectionActive;
         private bool _isFreeformSelectionActive;
+        private bool _isDraggingSelection;
+        private Point _selectionDragStart;
+        private Rect _selectionOriginalRect;
+        private readonly List<Point> _selectionOriginalFreeformPoints = new();
+        private SelectionMode? _dragSelectionType;
 
         // Mouse position hiển thị ở StatusBar
         private Point _mousePosition;
@@ -161,6 +166,9 @@ namespace PaintApplication.ViewModels
             switch (_toolbox.SelectedTool)
             {
                 case ToolType.Select:
+                    if (TryBeginDragSelection(pos))
+                        return;
+
                     BeginSelection(pos);
                     return;
 
@@ -273,6 +281,11 @@ namespace PaintApplication.ViewModels
         private void OnMouseMove(Point pos)
         {
             MousePosition = pos;
+            if (_isDraggingSelection)
+            {
+                DragSelection(pos);
+                return;
+            }
             var color = _toolbox.SelectedColor;
 
             switch (_toolbox.SelectedTool)
@@ -339,6 +352,11 @@ namespace PaintApplication.ViewModels
 
         private void OnMouseUp()
         {
+            if (_isDraggingSelection)
+            {
+                FinishDragSelection();
+                return;
+            }
             if (_isSelecting)
             {
                 EndSelection();
@@ -506,6 +524,8 @@ namespace PaintApplication.ViewModels
             _isSelecting = true;
             _shouldPushStateOnMouseUp = false;
             _selectionStart = pos;
+            _isDraggingSelection = false;
+            _dragSelectionType = null;
             if (_toolbox.SelectionMode == SelectionMode.Freeform)
             {
                 _freeformSelectionPoints.Clear();
@@ -601,10 +621,106 @@ namespace PaintApplication.ViewModels
             _freeformSelectionPoints.Clear();
             IsRectangleSelectionActive = false;
             IsFreeformSelectionActive = false;
+            _isDraggingSelection = false;
+            _dragSelectionType = null;
+            _selectionOriginalFreeformPoints.Clear();
             if (cancelCropMode)
             {
                 _cropAfterSelection = false;
             }
+        }
+
+        private bool TryBeginDragSelection(Point pos)
+        {
+            if (!HasSelection)
+                return false;
+
+            if (IsFreeformSelectionActive && SelectionGeometry != null && SelectionGeometry.FillContains(pos))
+            {
+                _isDraggingSelection = true;
+                _selectionDragStart = pos;
+                _selectionOriginalRect = SelectionRect;
+                _selectionOriginalFreeformPoints.Clear();
+                _selectionOriginalFreeformPoints.AddRange(_freeformSelectionPoints);
+                _dragSelectionType = SelectionMode.Freeform;
+                _shouldPushStateOnMouseUp = false;
+                return true;
+            }
+
+            if (IsRectangleSelectionActive && SelectionRect.Contains(pos))
+            {
+                _isDraggingSelection = true;
+                _selectionDragStart = pos;
+                _selectionOriginalRect = SelectionRect;
+                _selectionOriginalFreeformPoints.Clear();
+                _dragSelectionType = SelectionMode.Rectangle;
+                _shouldPushStateOnMouseUp = false;
+                return true;
+            }
+
+            return false;
+        }
+
+        private void DragSelection(Point pos)
+        {
+            if (!_isDraggingSelection || _dragSelectionType == null)
+                return;
+
+            Vector delta = pos - _selectionDragStart;
+
+            if (_dragSelectionType == SelectionMode.Rectangle)
+            {
+                var movedRect = new Rect(
+                    _selectionOriginalRect.X + delta.X,
+                    _selectionOriginalRect.Y + delta.Y,
+                    _selectionOriginalRect.Width,
+                    _selectionOriginalRect.Height);
+
+                SelectionRect = movedRect;
+                HasSelection = movedRect.Width >= 1 && movedRect.Height >= 1;
+                IsRectangleSelectionActive = HasSelection;
+                return;
+            }
+
+            _freeformSelectionPoints.Clear();
+            foreach (var point in _selectionOriginalFreeformPoints)
+            {
+                _freeformSelectionPoints.Add(new Point(point.X + delta.X, point.Y + delta.Y));
+            }
+
+            RecalculateFreeformSelection(closeFigure: true);
+        }
+
+        private void FinishDragSelection()
+        {
+            if (!_isDraggingSelection)
+                return;
+
+            _isDraggingSelection = false;
+
+            if (_dragSelectionType == SelectionMode.Freeform)
+            {
+                if (_freeformSelectionPoints.Count == 0)
+                {
+                    ClearSelection();
+                }
+                else
+                {
+                    RecalculateFreeformSelection(closeFigure: true);
+                }
+            }
+            else if (_dragSelectionType == SelectionMode.Rectangle)
+            {
+                HasSelection = SelectionRect.Width >= 1 && SelectionRect.Height >= 1;
+                IsRectangleSelectionActive = HasSelection;
+                if (!HasSelection)
+                {
+                    ClearSelection();
+                }
+            }
+
+            _dragSelectionType = null;
+            _selectionOriginalFreeformPoints.Clear();
         }
 
         private void AddFreeformPoint(Point pos)
