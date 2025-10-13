@@ -34,7 +34,23 @@ namespace PaintApplication.Views
             InitializeComponent();
             DataContextChanged += CanvasView_DataContextChanged;
             Loaded += CanvasView_Loaded;
+            PreviewMouseWheel += CanvasView_PreviewMouseWheel;
             UpdateZoom();
+        }
+
+        private void CanvasView_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            if (!Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
+                return;
+
+            e.Handled = true;
+
+            double delta = e.Delta > 0 ? 10 : -10;
+            double newZoom = ZoomLevel + delta;
+            if (newZoom < 10) newZoom = 10;
+            if (newZoom > 400) newZoom = 400;
+
+            ZoomLevel = newZoom;
         }
 
         private static void OnZoomLevelChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)

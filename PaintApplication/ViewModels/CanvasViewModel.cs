@@ -34,6 +34,8 @@ namespace PaintApplication.ViewModels
         private Point _selectionStart;
         private Rect _selectionRect = new Rect(0, 0, 0, 0);
         private bool _hasSelection;
+        private bool _cropAfterSelection;
+        private bool _lastActionWasUndo;
 
         // Mouse position hiển thị ở StatusBar
         private Point _mousePosition;
@@ -85,6 +87,9 @@ namespace PaintApplication.ViewModels
             get => _hasSelection;
             private set => SetProperty(ref _hasSelection, value);
         }
+
+        public bool CanUndo => _undoStack.Count > 1;
+        public bool CanRedo => _redoStack.Count > 0;
 
         // Undo/Redo stack
         private readonly Stack<List<ShapeModel>> _undoStack = new();
@@ -503,15 +508,49 @@ namespace PaintApplication.ViewModels
             _isSelecting = false;
             if (!HasSelection)
             {
-                ClearSelection();
+                if (_cropAfterSelection)
+                {
+                    SelectionRect = new Rect(0, 0, 0, 0);
+                    HasSelection = false;
+                }
+                else
+                {
+                    ClearSelection();
+                }
+
+                return;
+            }
+
+            if (_cropAfterSelection)
+            {
+                _cropAfterSelection = false;
+                CropSelection();
             }
         }
 
-        public void ClearSelection()
+        public void ClearSelection(bool cancelCropMode = true)
         {
             _isSelecting = false;
             SelectionRect = new Rect(0, 0, 0, 0);
             HasSelection = false;
+            if (cancelCropMode)
+            {
+                _cropAfterSelection = false;
+            }
+        }
+
+        public void BeginCropSelectionMode()
+        {
+            _cropAfterSelection = true;
+            if (HasSelection)
+            {
+                ClearSelection(cancelCropMode: false);
+            }
+        }
+
+        public void CancelCropMode()
+        {
+            _cropAfterSelection = false;
         }
 
         // ========== Undo/Redo ==========
@@ -520,6 +559,9 @@ namespace PaintApplication.ViewModels
             var snapshot = CloneShapes(ExportShapes());
             _undoStack.Push(snapshot);
             _redoStack.Clear();
+            _lastActionWasUndo = false;
+            OnPropertyChanged(nameof(CanUndo));
+            OnPropertyChanged(nameof(CanRedo));
         }
 
         public void Undo()
@@ -530,6 +572,9 @@ namespace PaintApplication.ViewModels
                 _redoStack.Push(CloneShapes(current));
                 var prev = _undoStack.Peek();
                 ImportShapes(CloneShapes(prev));
+                _lastActionWasUndo = true;
+                OnPropertyChanged(nameof(CanUndo));
+                OnPropertyChanged(nameof(CanRedo));
             }
         }
 
@@ -540,6 +585,21 @@ namespace PaintApplication.ViewModels
                 var state = _redoStack.Pop();
                 _undoStack.Push(CloneShapes(state));
                 ImportShapes(CloneShapes(state));
+                _lastActionWasUndo = false;
+                OnPropertyChanged(nameof(CanUndo));
+                OnPropertyChanged(nameof(CanRedo));
+            }
+        }
+
+        public void UndoOrRedo()
+        {
+            if (_lastActionWasUndo && CanRedo)
+            {
+                Redo();
+            }
+            else
+            {
+                Undo();
             }
         }
 
@@ -1312,6 +1372,7 @@ namespace PaintApplication.ViewModels
         public void CropSelection()
         {
             CommitActiveTextBox();
+            _cropAfterSelection = false;
             if (!HasSelection)
                 return;
 

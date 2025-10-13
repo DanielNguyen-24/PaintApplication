@@ -21,6 +21,7 @@ namespace PaintApplication.ViewModels
                     if (value != ToolType.Select)
                     {
                         Canvas?.ClearSelection();
+                        Canvas?.CancelCropMode();
                     }
 
                     if (value != ToolType.Shape && SelectedShape != ShapeType.None)
@@ -225,13 +226,14 @@ namespace PaintApplication.ViewModels
             if (Canvas == null)
                 return;
 
-            if (!Canvas.HasSelection)
+            if (Canvas.HasSelection)
             {
-                SelectedTool = ToolType.Select;
+                Canvas.CropSelection();
                 return;
             }
 
-            Canvas.CropSelection();
+            SelectedTool = ToolType.Select;
+            Canvas.BeginCropSelectionMode();
         }
 
         public void DoRotate()
