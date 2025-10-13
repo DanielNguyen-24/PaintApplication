@@ -42,7 +42,14 @@ namespace PaintApplication.Models
         Polygon,
         Freeform,
         Text,
-        Lightning
+        Lightning,
+        Image
+    }
+
+    public enum SelectionMode
+    {
+        Rectangle,
+        Freeform
     }
 
 

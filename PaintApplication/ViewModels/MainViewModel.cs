@@ -1,8 +1,6 @@
 ﻿using System.Collections.ObjectModel;
 using PaintApplication.Helpers;
-using PaintApplication.Services;
 using System.Windows.Input;
-using PaintApplication.Models;
 
 namespace PaintApplication.ViewModels
 {

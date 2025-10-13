@@ -12,6 +12,18 @@
         <vm:MainViewModel />
     </ribbon:RibbonWindow.DataContext>
 
+    <ribbon:RibbonWindow.InputBindings>
+        <KeyBinding Key="Z"
+                    Modifiers="Control"
+                    Command="{Binding UndoCommand}" />
+        <KeyBinding Key="Z"
+                    Modifiers="Control+Shift"
+                    Command="{Binding RedoCommand}" />
+        <KeyBinding Key="Y"
+                    Modifiers="Control"
+                    Command="{Binding RedoCommand}" />
+    </ribbon:RibbonWindow.InputBindings>
+
     <DockPanel>
         <!-- Menu -->
         <Menu DockPanel.Dock="Top">
@@ -48,6 +60,7 @@
         </StatusBar>
 
         <!-- Canvas chiếm phần giữa -->
-        <views:CanvasView DataContext="{Binding Canvas}" ZoomLevel="{Binding ZoomLevel, Mode=TwoWay}" />
+        <views:CanvasView DataContext="{Binding Canvas}"
+                          ZoomLevel="{Binding DataContext.ZoomLevel, Mode=TwoWay, RelativeSource={RelativeSource AncestorType={x:Type ribbon:RibbonWindow}}}" />
     </DockPanel>
 </ribbon:RibbonWindow>

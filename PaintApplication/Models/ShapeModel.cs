@@ -58,5 +58,7 @@ namespace PaintApplication.Models
         public string? FontFamilyName { get; set; }
         public double FontSize { get; set; } = 16;
         public string ForegroundColor { get; set; } = "#FF000000";
+
+        public byte[]? ImageData { get; set; }
     }
 }

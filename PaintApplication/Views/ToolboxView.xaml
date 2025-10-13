@@ -22,8 +22,15 @@
 
                 <!-- Selection -->
                 <RibbonGroup Header="Selection" Background="#FF272727">
-                    <RibbonButton Label="Select"
-                                  Command="{Binding SelectCommand}" />
+                    <RibbonToggleButton Label="Select"
+                                         Command="{Binding SelectCommand}"
+                                         IsChecked="{Binding SelectedTool, Converter={StaticResource EnumEqualsConverter}, ConverterParameter=Select, Mode=TwoWay}" />
+                    <RibbonToggleButton Label="Rect"
+                                         Command="{Binding SelectRectangleSelectionCommand}"
+                                         IsChecked="{Binding SelectionMode, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Rectangle, Mode=TwoWay}" />
+                    <RibbonToggleButton Label="Freeform"
+                                         Command="{Binding SelectFreeformSelectionCommand}"
+                                         IsChecked="{Binding SelectionMode, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Freeform, Mode=TwoWay}" />
                 </RibbonGroup>
 
                 <!-- Image -->
