@@ -1,4 +1,4 @@
-﻿using PaintApplication.Helpers;
+using PaintApplication.Helpers;
 using PaintApplication.Models;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -27,6 +27,16 @@ namespace PaintApplication.ViewModels
                     {
                         SelectedShape = ShapeType.None;
                     }
+
+                    if (value != ToolType.Brush && SelectedBrushOption != null)
+                    {
+                        foreach (var brush in Brushes)
+                        {
+                            brush.IsSelected = brush.Type == SelectedBrush;
+                        }
+                        SelectedBrushOption = Brushes.FirstOrDefault(b => b.Type == SelectedBrush);
+                        OnPropertyChanged(nameof(SelectedBrushDisplayName));
+                    }
                 }
             }
         }
@@ -48,14 +58,17 @@ namespace PaintApplication.ViewModels
         public BrushType SelectedBrush
         {
             get => _selectedBrush;
-            set
-            {
-                if (SetProperty(ref _selectedBrush, value) && value != BrushType.Brush)
-                {
-                    SelectedTool = ToolType.Brush;
-                }
-            }
+            set => SetProperty(ref _selectedBrush, value);
         }
+
+        private BrushOptionViewModel? _selectedBrushOption;
+        public BrushOptionViewModel? SelectedBrushOption
+        {
+            get => _selectedBrushOption;
+            private set => SetProperty(ref _selectedBrushOption, value);
+        }
+
+        public string SelectedBrushDisplayName => SelectedBrushOption?.Name ?? "Brushes";
 
         private double _thickness = 2.0;
         public double Thickness
@@ -92,7 +105,7 @@ namespace PaintApplication.ViewModels
             8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 48, 72
         };
 
-        public ObservableCollection<BrushItem> Brushes { get; }
+        public ObservableCollection<BrushOptionViewModel> Brushes { get; }
 
         public ObservableCollection<Color> AvailableColors { get; } = new()
         {
@@ -147,7 +160,8 @@ namespace PaintApplication.ViewModels
             FillCommand = new RelayCommand(_ => SelectedTool = ToolType.Fill);
             TextCommand = new RelayCommand(_ => SelectedTool = ToolType.Text);
             MagnifierCommand = new RelayCommand(_ => SelectedTool = ToolType.Magnifier);
-            BrushCommand = new RelayCommand(_ => SelectedTool = ToolType.Brush);
+
+            BrushCommand = new RelayCommand(_ => SelectBrush(SelectedBrush));
             DrawCircleCommand = new RelayCommand(_ =>
             {
                 SelectedTool = ToolType.Shape;
@@ -159,10 +173,13 @@ namespace PaintApplication.ViewModels
 
             SelectBrushCommand = new RelayCommand(obj =>
             {
-                if (obj is BrushItem brush)
+                if (obj is BrushOptionViewModel option)
                 {
-                    SelectedBrush = brush.Type;
-                    SelectedTool = ToolType.Brush;
+                    SelectBrush(option.Type);
+                }
+                else if (obj is BrushType brushType)
+                {
+                    SelectBrush(brushType);
                 }
             });
 
@@ -174,22 +191,33 @@ namespace PaintApplication.ViewModels
                 }
             });
 
-            Brushes = new ObservableCollection<BrushItem>
+            Brushes = new ObservableCollection<BrushOptionViewModel>
             {
-                new BrushItem { Name = "Brush", Type = BrushType.Brush, IconPath = "pack://application:,,,/Resources/Icons/brush.png" },
-                new BrushItem { Name = "Calligraphy pen", Type = BrushType.CalligraphyPen, IconPath = "pack://application:,,,/Resources/Icons/calligraphy_pen.png" },
-                new BrushItem { Name = "Airbrush", Type = BrushType.Airbrush, IconPath = "pack://application:,,,/Resources/Icons/airbrush.png" },
-                new BrushItem { Name = "Oil brush", Type = BrushType.OilBrush, IconPath = "pack://application:,,,/Resources/Icons/oil_brush.png" },
-                new BrushItem { Name = "Crayon", Type = BrushType.Crayon, IconPath = "pack://application:,,,/Resources/Icons/crayon.png" },
-                new BrushItem { Name = "Marker", Type = BrushType.Marker, IconPath = "pack://application:,,,/Resources/Icons/marker.png" },
-                new BrushItem { Name = "Natural pencil", Type = BrushType.NaturalPencil, IconPath = "pack://application:,,,/Resources/Icons/natural_pencil.png" },
-                new BrushItem { Name = "Watercolor brush", Type = BrushType.WatercolorBrush, IconPath = "pack://application:,,,/Resources/Icons/watercolor.png" }
+                new BrushOptionViewModel(this, "Brush", BrushType.Brush, "pack://application:,,,/Resources/Icons/brush.png"),
+                new BrushOptionViewModel(this, "Calligraphy pen", BrushType.CalligraphyPen, "pack://application:,,,/Resources/Icons/calligraphy_pen.png"),
+                new BrushOptionViewModel(this, "Airbrush", BrushType.Airbrush, "pack://application:,,,/Resources/Icons/airbrush.png"),
+                new BrushOptionViewModel(this, "Oil brush", BrushType.OilBrush, "pack://application:,,,/Resources/Icons/oil_brush.png"),
+                new BrushOptionViewModel(this, "Crayon", BrushType.Crayon, "pack://application:,,,/Resources/Icons/crayon.png"),
+                new BrushOptionViewModel(this, "Marker", BrushType.Marker, "pack://application:,,,/Resources/Icons/marker.png"),
+                new BrushOptionViewModel(this, "Natural pencil", BrushType.NaturalPencil, "pack://application:,,,/Resources/Icons/natural_pencil.png"),
+                new BrushOptionViewModel(this, "Watercolor brush", BrushType.WatercolorBrush, "pack://application:,,,/Resources/Icons/watercolor.png")
             };
 
-            if (Brushes.Count > 0)
+            SelectBrush(Brushes.First().Type);
+        }
+
+        private void SelectBrush(BrushType brushType)
+        {
+            SelectedBrush = brushType;
+            SelectedTool = ToolType.Brush;
+
+            foreach (var brush in Brushes)
             {
-                SelectedBrush = Brushes[0].Type;
+                brush.IsSelected = brush.Type == brushType;
             }
+
+            SelectedBrushOption = Brushes.FirstOrDefault(b => b.Type == brushType);
+            OnPropertyChanged(nameof(SelectedBrushDisplayName));
         }
 
         public void DoCrop()
@@ -213,5 +241,29 @@ namespace PaintApplication.ViewModels
         public void DoOpenColorPicker() { /* mở popup chọn màu */ }
         public void DoAI() { /* gọi AI */ }
         public void DoLayers() { /* quản lý layers */ }
+    }
+
+    public class BrushOptionViewModel : ViewModelBase
+    {
+        public BrushOptionViewModel(ToolboxViewModel owner, string name, BrushType type, string iconPath)
+        {
+            Name = name;
+            Type = type;
+            IconPath = iconPath;
+            SelectCommand = new RelayCommand(_ => owner.SelectBrushCommand.Execute(this));
+        }
+
+        public string Name { get; }
+        public BrushType Type { get; }
+        public string IconPath { get; }
+
+        private bool _isSelected;
+        public bool IsSelected
+        {
+            get => _isSelected;
+            set => SetProperty(ref _isSelected, value);
+        }
+
+        public ICommand SelectCommand { get; }
     }
 }

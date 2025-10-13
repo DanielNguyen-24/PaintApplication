@@ -41,9 +41,10 @@ namespace PaintApplication.Models
         ArrowRight,
         Polygon,
         Freeform,
+        Text,
         Lightning
     }
-    
+
 
 }
 

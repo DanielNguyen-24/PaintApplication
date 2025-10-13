@@ -27,13 +27,29 @@ namespace PaintApplication.ViewModels
 
         private readonly Random _rand = new Random();
 
+        public event Action<double>? ZoomRequested;
+        private TextBox? _activeTextBox;
+        private bool _isSelecting;
+        private bool _shouldPushStateOnMouseUp = true;
+        private Point _selectionStart;
+        private Rect _selectionRect = new Rect(0, 0, 0, 0);
+        private bool _hasSelection;
+
         // Mouse position hiển thị ở StatusBar
         private Point _mousePosition;
         public Point MousePosition
         {
             get => _mousePosition;
-            set => SetProperty(ref _mousePosition, value);
+            set
+            {
+                if (SetProperty(ref _mousePosition, value))
+                {
+                    OnPropertyChanged(nameof(MousePositionDisplay));
+                }
+            }
         }
+
+        public string MousePositionDisplay => $"X={MousePosition.X:0}, Y={MousePosition.Y:0}";
 
         private double _brushSize = 2; // giá trị mặc định
         public double BrushSize
@@ -41,11 +57,34 @@ namespace PaintApplication.ViewModels
             get => _brushSize;
             set => SetProperty(ref _brushSize, value);
         }
-        private Ellipse _brushPreview;
+        private Ellipse? _brushPreview;
 
 
-        public int CanvasWidth { get; private set; } = 1000;
-        public int CanvasHeight { get; private set; } = 600;
+        private int _canvasWidth = 1000;
+        public int CanvasWidth
+        {
+            get => _canvasWidth;
+            private set => SetProperty(ref _canvasWidth, value);
+        }
+
+        private int _canvasHeight = 600;
+        public int CanvasHeight
+        {
+            get => _canvasHeight;
+            private set => SetProperty(ref _canvasHeight, value);
+        }
+
+        public Rect SelectionRect
+        {
+            get => _selectionRect;
+            private set => SetProperty(ref _selectionRect, value);
+        }
+
+        public bool HasSelection
+        {
+            get => _hasSelection;
+            private set => SetProperty(ref _hasSelection, value);
+        }
 
         // Undo/Redo stack
         private readonly Stack<List<ShapeModel>> _undoStack = new();
@@ -87,8 +126,38 @@ namespace PaintApplication.ViewModels
         private void OnMouseDown(Point pos)
         {
             _startPoint = pos;
+            CommitActiveTextBox();
+            _shouldPushStateOnMouseUp = true;
+
             var color = _toolbox.SelectedColor;
             var thickness = (BrushSize > 0) ? BrushSize : _toolbox.Thickness;
+
+            switch (_toolbox.SelectedTool)
+            {
+                case ToolType.Select:
+                    BeginSelection(pos);
+                    return;
+
+                case ToolType.Text:
+                    StartTextInput(pos);
+                    return;
+
+                case ToolType.Fill:
+                    ClearSelection();
+                    DoFloodFill(pos, _toolbox.SelectedColor);
+                    PushUndoState();
+                    StateChanged?.Invoke();
+                    _shouldPushStateOnMouseUp = false;
+                    return;
+
+                case ToolType.Magnifier:
+                    double zoomDelta = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift) ? -10 : 10;
+                    ZoomRequested?.Invoke(zoomDelta);
+                    _shouldPushStateOnMouseUp = false;
+                    return;
+            }
+
+            ClearSelection();
 
             switch (_toolbox.SelectedTool)
             {
@@ -102,16 +171,6 @@ namespace PaintApplication.ViewModels
 
                 case ToolType.Shape:
                     HandleShapeMouseDown(pos, color, thickness);
-                    break;
-
-                case ToolType.Fill:
-                    DoFloodFill(pos, _toolbox.SelectedColor);
-                    PushUndoState();
-                    StateChanged?.Invoke();
-                    break;
-
-                case ToolType.Text:
-                    // TODO: add TextBox creation
                     break;
 
                 case ToolType.Brush:
@@ -170,7 +229,6 @@ namespace PaintApplication.ViewModels
                             break;
 
                         case BrushType.WatercolorBrush:
-                            // watercolor dùng ellipse trong suốt thay vì polyline
                             var dot = new Ellipse
                             {
                                 Width = thickness * 2,
@@ -190,10 +248,13 @@ namespace PaintApplication.ViewModels
         {
             MousePosition = pos;
             var color = _toolbox.SelectedColor;
-            Random rand = new Random();
 
             switch (_toolbox.SelectedTool)
             {
+                case ToolType.Select:
+                    UpdateSelection(pos);
+                    break;
+
                 case ToolType.Pencil:
                 case ToolType.Eraser:
                     if (_currentLine != null)
@@ -252,6 +313,12 @@ namespace PaintApplication.ViewModels
 
         private void OnMouseUp()
         {
+            if (_isSelecting)
+            {
+                EndSelection();
+                return;
+            }
+
             // Nếu là polyline thì check khép kín (chỉ áp dụng cho Pencil)
             if (_toolbox.SelectedTool == ToolType.Pencil && _currentLine != null)
             {
@@ -275,9 +342,176 @@ namespace PaintApplication.ViewModels
             _currentLine = null;
             _currentShape = null;
 
-            // Lưu trạng thái để Undo/Redo
-            PushUndoState();
-            StateChanged?.Invoke();
+            if (_shouldPushStateOnMouseUp)
+            {
+                PushUndoState();
+                StateChanged?.Invoke();
+            }
+        }
+
+        private void CommitActiveTextBox()
+        {
+            if (_activeTextBox != null)
+            {
+                CommitText(_activeTextBox);
+            }
+        }
+
+        private void StartTextInput(Point pos)
+        {
+            ClearSelection();
+            _shouldPushStateOnMouseUp = false;
+
+            var brush = new SolidColorBrush(_toolbox.SelectedColor);
+            var textBox = new TextBox
+            {
+                MinWidth = 120,
+                MinHeight = 30,
+                Background = Brushes.Transparent,
+                BorderBrush = brush,
+                Foreground = brush,
+                BorderThickness = new Thickness(1),
+                Padding = new Thickness(4),
+                AcceptsReturn = true,
+                TextWrapping = TextWrapping.Wrap,
+                FontFamily = new FontFamily(_toolbox.SelectedFontFamily),
+                FontSize = _toolbox.FontSize,
+                Tag = "CanvasTextInput"
+            };
+
+            Canvas.SetLeft(textBox, pos.X);
+            Canvas.SetTop(textBox, pos.Y);
+
+            textBox.LostFocus += TextBox_LostFocus;
+            textBox.KeyDown += TextBox_KeyDown;
+
+            _activeTextBox = textBox;
+            Shapes.Add(textBox);
+        }
+
+        private void TextBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (sender is TextBox textBox)
+            {
+                if (e.Key == Key.Enter && Keyboard.Modifiers == ModifierKeys.None)
+                {
+                    e.Handled = true;
+                    CommitText(textBox);
+                }
+                else if (e.Key == Key.Escape)
+                {
+                    e.Handled = true;
+                    CancelText(textBox);
+                }
+            }
+        }
+
+        private void TextBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (sender is TextBox textBox)
+            {
+                CommitText(textBox);
+            }
+        }
+
+        private void CommitText(TextBox textBox)
+        {
+            CleanupTextHandlers(textBox);
+
+            if (!Shapes.Contains(textBox))
+                return;
+
+            _activeTextBox = null;
+
+            var left = Canvas.GetLeft(textBox);
+            if (double.IsNaN(left)) left = 0;
+            var top = Canvas.GetTop(textBox);
+            if (double.IsNaN(top)) top = 0;
+
+            Shapes.Remove(textBox);
+
+            if (!string.IsNullOrWhiteSpace(textBox.Text))
+            {
+                var brush = textBox.Foreground is SolidColorBrush solid
+                    ? (Brush)solid.CloneCurrentValue()
+                    : textBox.Foreground?.CloneCurrentValue() ?? Brushes.Black;
+
+                var textBlock = new TextBlock
+                {
+                    Text = textBox.Text,
+                    Foreground = brush,
+                    FontFamily = textBox.FontFamily,
+                    FontSize = textBox.FontSize,
+                    TextWrapping = TextWrapping.Wrap,
+                    Background = Brushes.Transparent,
+                    Padding = textBox.Padding,
+                    Tag = "CanvasText"
+                };
+
+                Canvas.SetLeft(textBlock, left);
+                Canvas.SetTop(textBlock, top);
+
+                Shapes.Add(textBlock);
+                PushUndoState();
+                StateChanged?.Invoke();
+            }
+        }
+
+        private void CancelText(TextBox textBox)
+        {
+            CleanupTextHandlers(textBox);
+
+            if (Shapes.Contains(textBox))
+            {
+                Shapes.Remove(textBox);
+            }
+
+            _activeTextBox = null;
+        }
+
+        private void CleanupTextHandlers(TextBox textBox)
+        {
+            textBox.LostFocus -= TextBox_LostFocus;
+            textBox.KeyDown -= TextBox_KeyDown;
+        }
+
+        private void BeginSelection(Point pos)
+        {
+            _isSelecting = true;
+            _shouldPushStateOnMouseUp = false;
+            _selectionStart = pos;
+            SelectionRect = new Rect(pos, new Size(0, 0));
+            HasSelection = false;
+        }
+
+        private void UpdateSelection(Point pos)
+        {
+            if (!_isSelecting)
+                return;
+
+            double x = Math.Min(_selectionStart.X, pos.X);
+            double y = Math.Min(_selectionStart.Y, pos.Y);
+            double width = Math.Abs(pos.X - _selectionStart.X);
+            double height = Math.Abs(pos.Y - _selectionStart.Y);
+
+            SelectionRect = new Rect(x, y, width, height);
+            HasSelection = width >= 1 && height >= 1;
+        }
+
+        private void EndSelection()
+        {
+            _isSelecting = false;
+            if (!HasSelection)
+            {
+                ClearSelection();
+            }
+        }
+
+        public void ClearSelection()
+        {
+            _isSelecting = false;
+            SelectionRect = new Rect(0, 0, 0, 0);
+            HasSelection = false;
         }
 
         // ========== Undo/Redo ==========
@@ -767,6 +1001,21 @@ namespace PaintApplication.ViewModels
 
                     models.Add(shape);
                 }
+                else if (element is TextBlock textBlock)
+                {
+                    models.Add(new ShapeModel
+                    {
+                        ShapeType = ShapeType.Text,
+                        X = double.IsNaN(Canvas.GetLeft(textBlock)) ? 0 : Canvas.GetLeft(textBlock),
+                        Y = double.IsNaN(Canvas.GetTop(textBlock)) ? 0 : Canvas.GetTop(textBlock),
+                        Text = textBlock.Text,
+                        FontSize = textBlock.FontSize,
+                        FontFamilyName = textBlock.FontFamily?.Source,
+                        ForegroundColor = textBlock.Foreground is SolidColorBrush solid
+                            ? solid.Color.ToString()
+                            : textBlock.Foreground?.ToString() ?? "#FF000000"
+                    });
+                }
                 else if (element is Image img && img.Source != null)
                 {
                     // Optionally export images
@@ -851,6 +1100,32 @@ namespace PaintApplication.ViewModels
                             polygon.Points.Add(p);
                         Shapes.Add(polygon);
                         break;
+
+                    case ShapeType.Text:
+                        var textBlock = new TextBlock
+                        {
+                            Text = m.Text ?? string.Empty,
+                            FontSize = m.FontSize > 0 ? m.FontSize : _toolbox.FontSize,
+                            TextWrapping = TextWrapping.Wrap,
+                            Background = Brushes.Transparent
+                        };
+
+                        if (!string.IsNullOrWhiteSpace(m.FontFamilyName))
+                        {
+                            textBlock.FontFamily = new FontFamily(m.FontFamilyName);
+                        }
+
+                        if (!string.IsNullOrWhiteSpace(m.ForegroundColor))
+                        {
+                            var brush = new BrushConverter().ConvertFromString(m.ForegroundColor) as Brush;
+                            if (brush != null)
+                                textBlock.Foreground = brush;
+                        }
+
+                        Canvas.SetLeft(textBlock, m.X);
+                        Canvas.SetTop(textBlock, m.Y);
+                        Shapes.Add(textBlock);
+                        break;
                 }
             }
         }
@@ -916,33 +1191,90 @@ namespace PaintApplication.ViewModels
             }
         }
 
-        public void SaveCanvas(string filePath, int width, int height)
+        private Rect GetElementBounds(UIElement element)
         {
-            var rtb = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
-            var dv = new DrawingVisual();
-
-            using (var dc = dv.RenderOpen())
+            if (element is Shape shape)
             {
-                foreach (var element in Shapes)
-                {
-                    if (element is Shape shape)
-                    {
-                        var bounds = GetShapeBounds(shape);
-
-                        // Measure & Arrange with bounds to ensure correct rendering
-                        shape.Measure(new Size(bounds.Width, bounds.Height));
-                        shape.Arrange(new Rect(bounds.X, bounds.Y, bounds.Width, bounds.Height));
-
-                        dc.DrawRectangle(new VisualBrush(shape), null, bounds);
-                    }
-                    else if (element is Image img && img.Source != null)
-                    {
-                        dc.DrawImage(img.Source, new Rect(0, 0, img.Width, img.Height));
-                    }
-                }
+                return GetShapeBounds(shape);
             }
 
+            double left = Canvas.GetLeft(element);
+            if (double.IsNaN(left)) left = 0;
+            double top = Canvas.GetTop(element);
+            if (double.IsNaN(top)) top = 0;
+
+            if (element is Image image)
+            {
+                double width = image.Width;
+                double height = image.Height;
+
+                if ((width <= 0 || double.IsNaN(width)) && image.Source != null)
+                    width = image.Source.Width;
+                if ((height <= 0 || double.IsNaN(height)) && image.Source != null)
+                    height = image.Source.Height;
+
+                if (width <= 0) width = CanvasWidth;
+                if (height <= 0) height = CanvasHeight;
+
+                return new Rect(left, top, width, height);
+            }
+
+            element.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            var size = element.DesiredSize;
+
+            double elementWidth = Math.Max(1, size.Width);
+            double elementHeight = Math.Max(1, size.Height);
+
+            return new Rect(left, top, elementWidth, elementHeight);
+        }
+
+        private void RenderElements(DrawingContext dc)
+        {
+            foreach (var element in Shapes)
+            {
+                if (element is not UIElement uiElement)
+                    continue;
+
+                if (uiElement is TextBox textBox && Equals(textBox.Tag, "CanvasTextInput"))
+                    continue;
+
+                var bounds = GetElementBounds(uiElement);
+                if (bounds.Width <= 0 || bounds.Height <= 0)
+                    continue;
+
+                uiElement.Measure(new Size(bounds.Width, bounds.Height));
+                uiElement.Arrange(new Rect(bounds.X, bounds.Y, bounds.Width, bounds.Height));
+
+                if (uiElement is Image image && image.Source != null)
+                {
+                    dc.DrawImage(image.Source, bounds);
+                }
+                else
+                {
+                    dc.DrawRectangle(new VisualBrush(uiElement), null, bounds);
+                }
+            }
+        }
+
+        private RenderTargetBitmap RenderToBitmap(int width, int height)
+        {
+            width = Math.Max(1, width);
+            height = Math.Max(1, height);
+
+            var rtb = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
+            var dv = new DrawingVisual();
+            using (var dc = dv.RenderOpen())
+            {
+                RenderElements(dc);
+            }
             rtb.Render(dv);
+            return rtb;
+        }
+
+        public void SaveCanvas(string filePath, int width, int height)
+        {
+            CommitActiveTextBox();
+            var rtb = RenderToBitmap(CanvasWidth, CanvasHeight);
 
             var encoder = new PngBitmapEncoder();
             encoder.Frames.Add(BitmapFrame.Create(rtb));
@@ -955,15 +1287,109 @@ namespace PaintApplication.ViewModels
         {
             var bitmap = new BitmapImage(new Uri(filePath, UriKind.Absolute));
 
+            CommitActiveTextBox();
             Shapes.Clear();
-            Shapes.Add(new Image
+            var imageWidth = bitmap.PixelWidth > 0 ? bitmap.PixelWidth : width;
+            var imageHeight = bitmap.PixelHeight > 0 ? bitmap.PixelHeight : height;
+
+            var image = new Image
             {
                 Source = bitmap,
-                Width = width,
-                Height = height
-            });
+                Width = imageWidth,
+                Height = imageHeight
+            };
+            Canvas.SetLeft(image, 0);
+            Canvas.SetTop(image, 0);
+            Shapes.Add(image);
+
+            CanvasWidth = imageWidth;
+            CanvasHeight = imageHeight;
+            ClearSelection();
 
             PushUndoState();
+        }
+
+        public void CropSelection()
+        {
+            CommitActiveTextBox();
+            if (!HasSelection)
+                return;
+
+            int x = (int)Math.Floor(SelectionRect.X);
+            int y = (int)Math.Floor(SelectionRect.Y);
+            int width = (int)Math.Ceiling(SelectionRect.Width);
+            int height = (int)Math.Ceiling(SelectionRect.Height);
+
+            if (width <= 0 || height <= 0)
+                return;
+
+            x = Math.Max(0, x);
+            y = Math.Max(0, y);
+
+            if (x >= CanvasWidth || y >= CanvasHeight)
+                return;
+
+            if (x + width > CanvasWidth)
+                width = CanvasWidth - x;
+            if (y + height > CanvasHeight)
+                height = CanvasHeight - y;
+
+            if (width <= 0 || height <= 0)
+                return;
+
+            var bitmap = RenderToBitmap(CanvasWidth, CanvasHeight);
+            bitmap.Freeze();
+
+            var cropRect = new Int32Rect(x, y, width, height);
+            var cropped = new CroppedBitmap(bitmap, cropRect);
+            cropped.Freeze();
+
+            Shapes.Clear();
+            var image = new Image
+            {
+                Source = cropped,
+                Width = width,
+                Height = height
+            };
+            Canvas.SetLeft(image, 0);
+            Canvas.SetTop(image, 0);
+            Shapes.Add(image);
+
+            CanvasWidth = width;
+            CanvasHeight = height;
+            ClearSelection();
+            PushUndoState();
+            StateChanged?.Invoke();
+        }
+
+        public void RotateCanvas90()
+        {
+            CommitActiveTextBox();
+            if (CanvasWidth <= 0 || CanvasHeight <= 0)
+                return;
+
+            var bitmap = RenderToBitmap(CanvasWidth, CanvasHeight);
+            bitmap.Freeze();
+
+            var rotated = new TransformedBitmap(bitmap, new RotateTransform(90));
+            rotated.Freeze();
+
+            Shapes.Clear();
+            var image = new Image
+            {
+                Source = rotated,
+                Width = rotated.PixelWidth,
+                Height = rotated.PixelHeight
+            };
+            Canvas.SetLeft(image, 0);
+            Canvas.SetTop(image, 0);
+            Shapes.Add(image);
+
+            CanvasWidth = rotated.PixelWidth;
+            CanvasHeight = rotated.PixelHeight;
+            ClearSelection();
+            PushUndoState();
+            StateChanged?.Invoke();
         }
 
         // ========== Flood Fill ==========
@@ -973,27 +1399,10 @@ namespace PaintApplication.ViewModels
             int height = CanvasHeight;
             if (width <= 0 || height <= 0) return;
 
+            CommitActiveTextBox();
+
             // Render toàn bộ Shapes thành bitmap
-            var rtb = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
-            var dv = new DrawingVisual();
-            using (var dc = dv.RenderOpen())
-            {
-                foreach (var element in Shapes)
-                {
-                    if (element is Shape shape)
-                    {
-                        var bounds = GetShapeBounds(shape);
-                        shape.Measure(new Size(bounds.Width, bounds.Height));
-                        shape.Arrange(new Rect(bounds.X, bounds.Y, bounds.Width, bounds.Height));
-                        dc.DrawRectangle(new VisualBrush(shape), null, bounds);
-                    }
-                    else if (element is Image img && img.Source != null)
-                    {
-                        dc.DrawImage(img.Source, new Rect(0, 0, img.Width, img.Height));
-                    }
-                }
-            }
-            rtb.Render(dv);
+            var rtb = RenderToBitmap(width, height);
 
             // Copy pixel data
             int stride = width * 4;
@@ -1046,12 +1455,16 @@ namespace PaintApplication.ViewModels
 
             // Thay thế Shapes bằng 1 Image (bitmap mới)
             Shapes.Clear();
-            Shapes.Add(new Image
+            var image = new Image
             {
                 Source = wb,
                 Width = width,
                 Height = height
-            });
+            };
+            Canvas.SetLeft(image, 0);
+            Canvas.SetTop(image, 0);
+            Shapes.Add(image);
+            ClearSelection();
         }
 
         // Helper: shapes handling split-out để code gọn

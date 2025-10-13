@@ -3,7 +3,7 @@ using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
-namespace PaintApp.Services
+namespace PaintApplication.Services
 {
     public class ExportService
     {

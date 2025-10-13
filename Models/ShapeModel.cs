@@ -53,5 +53,10 @@ namespace PaintApplication.Models
         public double Thickness { get; set; } = 2.0;
         public bool IsFilled { get; set; } = false;
         public string FillColor { get; set; } = "#00000000";
+
+        public string? Text { get; set; }
+        public string? FontFamilyName { get; set; }
+        public double FontSize { get; set; } = 16;
+        public string ForegroundColor { get; set; } = "#FF000000";
     }
 }
