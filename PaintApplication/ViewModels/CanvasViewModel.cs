@@ -13,6 +13,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using System.Text.Json;
 using Path = System.Windows.Shapes.Path;
+using SelectionMode = PaintApplication.Models.SelectionMode;
 
 namespace PaintApplication.ViewModels
 {
@@ -63,7 +64,6 @@ namespace PaintApplication.ViewModels
             get => _brushSize;
             set => SetProperty(ref _brushSize, value);
         }
-        private Ellipse? _brushPreview;
 
 
         private int _canvasWidth = 1000;
@@ -1240,7 +1240,7 @@ namespace PaintApplication.ViewModels
                             Y1 = m.Y1,
                             X2 = m.X2,
                             Y2 = m.Y2,
-                            Stroke = (SolidColorBrush)(new BrushConverter().ConvertFromString(m.StrokeColor)),
+                            Stroke = ParseBrush(m.StrokeColor, Brushes.Black),
                             StrokeThickness = m.Thickness
                         };
                         Shapes.Add(line);
@@ -1251,11 +1251,12 @@ namespace PaintApplication.ViewModels
                         {
                             Width = m.Width,
                             Height = m.Height,
-                            Stroke = (SolidColorBrush)(new BrushConverter().ConvertFromString(m.StrokeColor)),
-                            StrokeThickness = m.Thickness
+                            Stroke = ParseBrush(m.StrokeColor, Brushes.Black),
+                            StrokeThickness = m.Thickness,
+                            Fill = m.IsFilled
+                                ? ParseBrush(m.FillColor, Brushes.Transparent)
+                                : CloneBrush(Brushes.Transparent)
                         };
-                        if (m.IsFilled && !string.IsNullOrEmpty(m.FillColor))
-                            rect.Fill = (SolidColorBrush)(new BrushConverter().ConvertFromString(m.FillColor));
                         Canvas.SetLeft(rect, m.X);
                         Canvas.SetTop(rect, m.Y);
                         Shapes.Add(rect);
@@ -1266,11 +1267,12 @@ namespace PaintApplication.ViewModels
                         {
                             Width = m.Width,
                             Height = m.Height,
-                            Stroke = (SolidColorBrush)(new BrushConverter().ConvertFromString(m.StrokeColor)),
-                            StrokeThickness = m.Thickness
+                            Stroke = ParseBrush(m.StrokeColor, Brushes.Black),
+                            StrokeThickness = m.Thickness,
+                            Fill = m.IsFilled
+                                ? ParseBrush(m.FillColor, Brushes.Transparent)
+                                : CloneBrush(Brushes.Transparent)
                         };
-                        if (m.IsFilled && !string.IsNullOrEmpty(m.FillColor))
-                            ell.Fill = (SolidColorBrush)(new BrushConverter().ConvertFromString(m.FillColor));
                         Canvas.SetLeft(ell, m.X);
                         Canvas.SetTop(ell, m.Y);
                         Shapes.Add(ell);
@@ -1279,7 +1281,7 @@ namespace PaintApplication.ViewModels
                     case ShapeType.Freeform:
                         var poly = new Polyline
                         {
-                            Stroke = (SolidColorBrush)(new BrushConverter().ConvertFromString(m.StrokeColor)),
+                            Stroke = ParseBrush(m.StrokeColor, Brushes.Black),
                             StrokeThickness = m.Thickness
                         };
                         foreach (var p in m.Points)
@@ -1292,9 +1294,9 @@ namespace PaintApplication.ViewModels
                     case ShapeType.Polygon:
                         var polygon = new Polygon
                         {
-                            Stroke = (SolidColorBrush)(new BrushConverter().ConvertFromString(m.StrokeColor)),
+                            Stroke = ParseBrush(m.StrokeColor, Brushes.Black),
                             StrokeThickness = m.Thickness,
-                            Fill = Brushes.Transparent
+                            Fill = CloneBrush(Brushes.Transparent)
                         };
                         foreach (var p in m.Points)
                             polygon.Points.Add(p);
@@ -1315,12 +1317,7 @@ namespace PaintApplication.ViewModels
                             textBlock.FontFamily = new FontFamily(m.FontFamilyName);
                         }
 
-                        if (!string.IsNullOrWhiteSpace(m.ForegroundColor))
-                        {
-                            var brush = new BrushConverter().ConvertFromString(m.ForegroundColor) as Brush;
-                            if (brush != null)
-                                textBlock.Foreground = brush;
-                        }
+                        textBlock.Foreground = ParseBrush(m.ForegroundColor, Brushes.Black);
 
                         Canvas.SetLeft(textBlock, m.X);
                         Canvas.SetTop(textBlock, m.Y);
@@ -1328,6 +1325,25 @@ namespace PaintApplication.ViewModels
                         break;
                 }
             }
+        }
+
+        private static Brush ParseBrush(string? brushValue, Brush fallback)
+        {
+            if (!string.IsNullOrWhiteSpace(brushValue))
+            {
+                var converter = new BrushConverter();
+                if (converter.ConvertFromString(brushValue) is Brush parsed)
+                {
+                    return CloneBrush(parsed);
+                }
+            }
+
+            return CloneBrush(fallback);
+        }
+
+        private static Brush CloneBrush(Brush brush)
+        {
+            return brush.CloneCurrentValue();
         }
 
         private List<ShapeModel> CloneShapes(List<ShapeModel> source)
@@ -1891,13 +1907,20 @@ namespace PaintApplication.ViewModels
 
         private void StartOilBrush(Point pos, Color color)
         {
-            if (_currentLine != null)
+            if (_currentLine == null)
+            {
+                return;
+            }
+
+            if (_currentLine.Stroke is SolidColorBrush strokeBrush)
             {
                 byte alpha = (byte)_rand.Next(150, 220);
-                (_currentLine.Stroke as SolidColorBrush).Color =
-                    Color.FromArgb(alpha, color.R, color.G, color.B);
-                _currentLine.Points.Add(pos);
+                strokeBrush = strokeBrush.CloneCurrentValue();
+                strokeBrush.Color = Color.FromArgb(alpha, color.R, color.G, color.B);
+                _currentLine.Stroke = strokeBrush;
             }
+
+            _currentLine.Points.Add(pos);
         }
 
         private void StartCrayon(Point pos, Color color, double size)

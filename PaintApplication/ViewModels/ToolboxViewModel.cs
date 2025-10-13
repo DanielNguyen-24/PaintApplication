@@ -5,6 +5,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows.Input;
 using System.Windows.Media;
+using SelectionMode = PaintApplication.Models.SelectionMode;
 
 namespace PaintApplication.ViewModels
 {
