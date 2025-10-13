@@ -36,7 +36,6 @@ namespace PaintApplication.ViewModels
         private Rect _selectionRect = new Rect(0, 0, 0, 0);
         private bool _hasSelection;
         private bool _cropAfterSelection;
-        private bool _lastActionWasUndo;
         private readonly List<Point> _freeformSelectionPoints = new();
         private Geometry? _selectionGeometry;
         private bool _isRectangleSelectionActive;
@@ -521,7 +520,7 @@ namespace PaintApplication.ViewModels
                 SelectionGeometry = null;
                 SelectionRect = new Rect(pos, new Size(0, 0));
                 HasSelection = false;
-                IsRectangleSelectionActive = true;
+                IsRectangleSelectionActive = false;
                 IsFreeformSelectionActive = false;
             }
         }
@@ -543,6 +542,7 @@ namespace PaintApplication.ViewModels
 
                 SelectionRect = new Rect(x, y, width, height);
                 HasSelection = width >= 1 && height >= 1;
+                IsRectangleSelectionActive = width > 0 || height > 0;
             }
         }
 
@@ -699,7 +699,6 @@ namespace PaintApplication.ViewModels
             var snapshot = CloneShapes(ExportShapes());
             _undoStack.Push(snapshot);
             _redoStack.Clear();
-            _lastActionWasUndo = false;
             OnPropertyChanged(nameof(CanUndo));
             OnPropertyChanged(nameof(CanRedo));
         }
@@ -712,7 +711,6 @@ namespace PaintApplication.ViewModels
                 _redoStack.Push(CloneShapes(current));
                 var prev = _undoStack.Peek();
                 ImportShapes(CloneShapes(prev));
-                _lastActionWasUndo = true;
                 OnPropertyChanged(nameof(CanUndo));
                 OnPropertyChanged(nameof(CanRedo));
             }
@@ -725,21 +723,8 @@ namespace PaintApplication.ViewModels
                 var state = _redoStack.Pop();
                 _undoStack.Push(CloneShapes(state));
                 ImportShapes(CloneShapes(state));
-                _lastActionWasUndo = false;
                 OnPropertyChanged(nameof(CanUndo));
                 OnPropertyChanged(nameof(CanRedo));
-            }
-        }
-
-        public void UndoOrRedo()
-        {
-            if (_lastActionWasUndo && CanRedo)
-            {
-                Redo();
-            }
-            else
-            {
-                Undo();
             }
         }
 

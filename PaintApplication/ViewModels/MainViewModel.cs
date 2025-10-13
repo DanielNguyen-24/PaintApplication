@@ -1,8 +1,6 @@
 ﻿using System.Collections.ObjectModel;
 using PaintApplication.Helpers;
-using PaintApplication.Services;
 using System.Windows.Input;
-using PaintApplication.Models;
 
 namespace PaintApplication.ViewModels
 {
@@ -27,7 +25,6 @@ namespace PaintApplication.ViewModels
         public ICommand ExitCommand { get; }
         public ICommand UndoCommand { get; }
         public ICommand RedoCommand { get; }
-        public ICommand ToggleUndoRedoCommand { get; }
         public ICommand ZoomInCommand { get; }
         public ICommand ZoomOutCommand { get; }
         public ICommand ResetZoomCommand { get; }
@@ -48,7 +45,6 @@ namespace PaintApplication.ViewModels
             // Undo/Redo → gọi sang CanvasViewModel
             UndoCommand = new RelayCommand(_ => Canvas.Undo());
             RedoCommand = new RelayCommand(_ => Canvas.Redo());
-            ToggleUndoRedoCommand = new RelayCommand(_ => Canvas.UndoOrRedo());
 
             ZoomInCommand = new RelayCommand(_ => ChangeZoom(10));
             ZoomOutCommand = new RelayCommand(_ => ChangeZoom(-10));
