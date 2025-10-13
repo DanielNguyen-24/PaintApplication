@@ -1,19 +1,21 @@
-<Window x:Class="PaintApplication.Views.MainWindow"
+<ribbon:RibbonWindow x:Class="PaintApplication.Views.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ribbon="clr-namespace:System.Windows.Controls.Ribbon;assembly=System.Windows.Controls.Ribbon"
         xmlns:vm="clr-namespace:PaintApplication.ViewModels"
         xmlns:views="clr-namespace:PaintApplication.Views"
         Title="Paint Application"
         Height="700" Width="1100"
         WindowStartupLocation="CenterScreen">
 
-    <Window.DataContext>
+    <ribbon:RibbonWindow.DataContext>
         <vm:MainViewModel />
-    </Window.DataContext>
+    </ribbon:RibbonWindow.DataContext>
 
     <DockPanel>
         <!-- Menu -->
-        <Menu DockPanel.Dock="Top">
+        <Menu DockPanel.Dock="Top"
+              ribbon:RibbonWindow.IsHitTestVisibleInChrome="True">
             <MenuItem Header="_File">
                 <MenuItem Header="_New" Command="{Binding NewFileCommand}" />
                 <MenuItem Header="_Open" Command="{Binding OpenFileCommand}" />
@@ -49,4 +51,4 @@
         <!-- Canvas chiếm phần giữa -->
         <views:CanvasView DataContext="{Binding Canvas}" ZoomLevel="{Binding ZoomLevel, Mode=TwoWay}" />
     </DockPanel>
-</Window>
+</ribbon:RibbonWindow>
