@@ -1,16 +1,15 @@
-<ribbon:RibbonWindow x:Class="PaintApplication.Views.MainWindow"
+<Window x:Class="PaintApplication.Views.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:ribbon="clr-namespace:System.Windows.Controls.Ribbon;assembly=System.Windows.Controls.Ribbon"
         xmlns:vm="clr-namespace:PaintApplication.ViewModels"
         xmlns:views="clr-namespace:PaintApplication.Views"
         Title="Paint Application"
         Height="700" Width="1100"
         WindowStartupLocation="CenterScreen">
 
-    <ribbon:RibbonWindow.DataContext>
+    <Window.DataContext>
         <vm:MainViewModel />
-    </ribbon:RibbonWindow.DataContext>
+    </Window.DataContext>
 
     <DockPanel>
         <!-- Menu -->
@@ -50,4 +49,4 @@
         <!-- Canvas chiếm phần giữa -->
         <views:CanvasView DataContext="{Binding Canvas}" ZoomLevel="{Binding ZoomLevel, Mode=TwoWay}" />
     </DockPanel>
-</ribbon:RibbonWindow>
+</Window>
