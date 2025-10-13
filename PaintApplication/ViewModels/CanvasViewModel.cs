@@ -45,6 +45,10 @@ namespace PaintApplication.ViewModels
         private Rect _selectionOriginalRect;
         private readonly List<Point> _selectionOriginalFreeformPoints = new();
         private SelectionMode? _dragSelectionType;
+        private Image? _floatingSelectionImage;
+        private bool _selectionIsFloating;
+        private Rect _floatingSelectionRect;
+        private bool _selectionMovedDuringDrag;
 
         // Mouse position hiển thị ở StatusBar
         private Point _mousePosition;
@@ -168,6 +172,9 @@ namespace PaintApplication.ViewModels
                 case ToolType.Select:
                     if (TryBeginDragSelection(pos))
                         return;
+
+                    if (HasSelection)
+                        ClearSelection();
 
                     BeginSelection(pos);
                     return;
@@ -624,6 +631,10 @@ namespace PaintApplication.ViewModels
             _isDraggingSelection = false;
             _dragSelectionType = null;
             _selectionOriginalFreeformPoints.Clear();
+            _floatingSelectionImage = null;
+            _selectionIsFloating = false;
+            _floatingSelectionRect = new Rect(0, 0, 0, 0);
+            _selectionMovedDuringDrag = false;
             if (cancelCropMode)
             {
                 _cropAfterSelection = false;
@@ -639,11 +650,12 @@ namespace PaintApplication.ViewModels
             {
                 _isDraggingSelection = true;
                 _selectionDragStart = pos;
-                _selectionOriginalRect = SelectionRect;
+                _selectionOriginalRect = _selectionIsFloating ? _floatingSelectionRect : SelectionRect;
                 _selectionOriginalFreeformPoints.Clear();
                 _selectionOriginalFreeformPoints.AddRange(_freeformSelectionPoints);
                 _dragSelectionType = SelectionMode.Freeform;
                 _shouldPushStateOnMouseUp = false;
+                _selectionMovedDuringDrag = false;
                 return true;
             }
 
@@ -651,10 +663,11 @@ namespace PaintApplication.ViewModels
             {
                 _isDraggingSelection = true;
                 _selectionDragStart = pos;
-                _selectionOriginalRect = SelectionRect;
+                _selectionOriginalRect = _selectionIsFloating ? _floatingSelectionRect : SelectionRect;
                 _selectionOriginalFreeformPoints.Clear();
                 _dragSelectionType = SelectionMode.Rectangle;
                 _shouldPushStateOnMouseUp = false;
+                _selectionMovedDuringDrag = false;
                 return true;
             }
 
@@ -667,6 +680,34 @@ namespace PaintApplication.ViewModels
                 return;
 
             Vector delta = pos - _selectionDragStart;
+
+            if (!_selectionIsFloating)
+            {
+                if (delta.X == 0 && delta.Y == 0)
+                    return;
+
+                if (!CreateFloatingSelectionVisual())
+                {
+                    _isDraggingSelection = false;
+                    _dragSelectionType = null;
+                    return;
+                }
+
+                _selectionOriginalRect = _floatingSelectionRect;
+                if (_dragSelectionType == SelectionMode.Freeform)
+                {
+                    _selectionOriginalFreeformPoints.Clear();
+                    _selectionOriginalFreeformPoints.AddRange(_freeformSelectionPoints);
+                }
+            }
+
+            _selectionMovedDuringDrag |= delta.X != 0 || delta.Y != 0;
+
+            if (_floatingSelectionImage != null)
+            {
+                Canvas.SetLeft(_floatingSelectionImage, _floatingSelectionRect.X + delta.X);
+                Canvas.SetTop(_floatingSelectionImage, _floatingSelectionRect.Y + delta.Y);
+            }
 
             if (_dragSelectionType == SelectionMode.Rectangle)
             {
@@ -719,8 +760,185 @@ namespace PaintApplication.ViewModels
                 }
             }
 
+            if (_floatingSelectionImage != null)
+            {
+                double left = Canvas.GetLeft(_floatingSelectionImage);
+                double top = Canvas.GetTop(_floatingSelectionImage);
+                if (double.IsNaN(left)) left = 0;
+                if (double.IsNaN(top)) top = 0;
+                double width = _floatingSelectionRect.Width;
+                double height = _floatingSelectionRect.Height;
+                if (HasSelection)
+                {
+                    width = SelectionRect.Width;
+                    height = SelectionRect.Height;
+                }
+
+                _floatingSelectionRect = new Rect(left, top, width, height);
+            }
+
             _dragSelectionType = null;
             _selectionOriginalFreeformPoints.Clear();
+
+            if (_selectionMovedDuringDrag)
+            {
+                PushUndoState();
+                StateChanged?.Invoke();
+            }
+
+            _selectionMovedDuringDrag = false;
+        }
+
+        private bool CreateFloatingSelectionVisual()
+        {
+            var bitmap = CaptureSelectionBitmap(out var pixelRect);
+            if (bitmap == null || pixelRect.Width <= 0 || pixelRect.Height <= 0)
+                return false;
+
+            if (_dragSelectionType == SelectionMode.Freeform && _selectionOriginalFreeformPoints.Count > 1)
+            {
+                var polygon = new Polygon
+                {
+                    Fill = Brushes.White,
+                    Stroke = Brushes.Transparent,
+                    IsHitTestVisible = false
+                };
+
+                foreach (var point in _selectionOriginalFreeformPoints)
+                    polygon.Points.Add(point);
+
+                if (_selectionOriginalFreeformPoints.Count > 0 && _selectionOriginalFreeformPoints[0] != _selectionOriginalFreeformPoints[^1])
+                    polygon.Points.Add(_selectionOriginalFreeformPoints[0]);
+
+                Panel.SetZIndex(polygon, 0);
+                Shapes.Add(polygon);
+            }
+            else
+            {
+                var rect = new Rectangle
+                {
+                    Width = pixelRect.Width,
+                    Height = pixelRect.Height,
+                    Fill = Brushes.White,
+                    Stroke = Brushes.Transparent,
+                    IsHitTestVisible = false
+                };
+                Canvas.SetLeft(rect, pixelRect.X);
+                Canvas.SetTop(rect, pixelRect.Y);
+                Panel.SetZIndex(rect, 0);
+                Shapes.Add(rect);
+            }
+
+            var image = new Image
+            {
+                Source = bitmap,
+                Stretch = Stretch.None,
+                IsHitTestVisible = false
+            };
+            Canvas.SetLeft(image, pixelRect.X);
+            Canvas.SetTop(image, pixelRect.Y);
+            Panel.SetZIndex(image, int.MaxValue);
+            Shapes.Add(image);
+
+            _floatingSelectionImage = image;
+            _selectionIsFloating = true;
+            _floatingSelectionRect = new Rect(pixelRect.X, pixelRect.Y, pixelRect.Width, pixelRect.Height);
+
+            if (_dragSelectionType == SelectionMode.Rectangle)
+            {
+                SelectionRect = new Rect(pixelRect.X, pixelRect.Y, pixelRect.Width, pixelRect.Height);
+                HasSelection = pixelRect.Width >= 1 && pixelRect.Height >= 1;
+                IsRectangleSelectionActive = HasSelection;
+            }
+
+            return true;
+        }
+
+        private BitmapSource? CaptureSelectionBitmap(out Int32Rect pixelRect)
+        {
+            pixelRect = new Int32Rect(0, 0, 0, 0);
+
+            if (CanvasWidth <= 0 || CanvasHeight <= 0)
+                return null;
+
+            var sourceRect = _selectionOriginalRect;
+            int x = (int)Math.Floor(sourceRect.X);
+            int y = (int)Math.Floor(sourceRect.Y);
+            int width = (int)Math.Ceiling(sourceRect.Width);
+            int height = (int)Math.Ceiling(sourceRect.Height);
+
+            if (width <= 0 || height <= 0)
+                return null;
+
+            x = Math.Max(0, x);
+            y = Math.Max(0, y);
+
+            if (x >= CanvasWidth || y >= CanvasHeight)
+                return null;
+
+            if (x + width > CanvasWidth)
+                width = CanvasWidth - x;
+            if (y + height > CanvasHeight)
+                height = CanvasHeight - y;
+
+            if (width <= 0 || height <= 0)
+                return null;
+
+            pixelRect = new Int32Rect(x, y, width, height);
+
+            var bitmap = RenderToBitmap(CanvasWidth, CanvasHeight);
+            bitmap.Freeze();
+
+            if (_dragSelectionType == SelectionMode.Freeform && SelectionGeometry != null)
+                return ExtractFreeformSelectionBitmap(bitmap, pixelRect);
+
+            var cropped = new CroppedBitmap(bitmap, pixelRect);
+            cropped.Freeze();
+            return cropped;
+        }
+
+        private BitmapSource? ExtractFreeformSelectionBitmap(BitmapSource source, Int32Rect pixelRect)
+        {
+            if (SelectionGeometry == null)
+                return null;
+
+            int stride = pixelRect.Width * 4;
+            byte[] pixels = new byte[stride * pixelRect.Height];
+            source.CopyPixels(pixelRect, pixels, stride, 0);
+
+            var geometry = SelectionGeometry.Clone();
+            geometry.Freeze();
+
+            for (int y = 0; y < pixelRect.Height; y++)
+            {
+                double canvasY = pixelRect.Y + y + 0.5;
+                for (int x = 0; x < pixelRect.Width; x++)
+                {
+                    double canvasX = pixelRect.X + x + 0.5;
+                    if (!geometry.FillContains(new Point(canvasX, canvasY)))
+                    {
+                        int index = y * stride + x * 4;
+                        pixels[index] = 0;
+                        pixels[index + 1] = 0;
+                        pixels[index + 2] = 0;
+                        pixels[index + 3] = 0;
+                    }
+                }
+            }
+
+            var writeable = new WriteableBitmap(pixelRect.Width, pixelRect.Height, 96, 96, PixelFormats.Pbgra32, null);
+            writeable.WritePixels(new Int32Rect(0, 0, pixelRect.Width, pixelRect.Height), pixels, stride, 0);
+            writeable.Freeze();
+            return writeable;
+        }
+
+        private static byte[] EncodeBitmapSource(BitmapSource source)
+        {
+            var encoder = new PngBitmapEncoder();
+            encoder.Frames.Add(BitmapFrame.Create(source));
+            using var ms = new MemoryStream();
+            encoder.Save(ms);
+            return ms.ToArray();
         }
 
         private void AddFreeformPoint(Point pos)
@@ -1297,6 +1515,16 @@ namespace PaintApplication.ViewModels
 
                     shape.StrokeColor = poly.Stroke?.ToString() ?? "#FF000000";
                     shape.Thickness = poly.StrokeThickness;
+                    if (poly.Fill is SolidColorBrush solidFill)
+                    {
+                        shape.IsFilled = solidFill.Color.A != 0;
+                        shape.FillColor = solidFill.Color.ToString();
+                    }
+                    else
+                    {
+                        shape.IsFilled = false;
+                        shape.FillColor = "#00000000";
+                    }
                     foreach (var p in poly.Points)
                         shape.Points.Add(new Point(p.X, p.Y));
 
@@ -1317,9 +1545,19 @@ namespace PaintApplication.ViewModels
                             : textBlock.Foreground?.ToString() ?? "#FF000000"
                     });
                 }
-                else if (element is Image img && img.Source != null)
+                else if (element is Image img && img.Source is BitmapSource bitmapSource)
                 {
-                    // Optionally export images
+                    var model = new ShapeModel
+                    {
+                        ShapeType = ShapeType.Image,
+                        X = double.IsNaN(Canvas.GetLeft(img)) ? 0 : Canvas.GetLeft(img),
+                        Y = double.IsNaN(Canvas.GetTop(img)) ? 0 : Canvas.GetTop(img),
+                        Width = double.IsNaN(img.Width) ? bitmapSource.PixelWidth : img.Width,
+                        Height = double.IsNaN(img.Height) ? bitmapSource.PixelHeight : img.Height,
+                        ImageData = EncodeBitmapSource(bitmapSource)
+                    };
+
+                    models.Add(model);
                 }
             }
 
@@ -1397,7 +1635,9 @@ namespace PaintApplication.ViewModels
                         {
                             Stroke = ParseBrush(m.StrokeColor, Brushes.Black),
                             StrokeThickness = m.Thickness,
-                            Fill = CloneBrush(Brushes.Transparent)
+                            Fill = m.IsFilled
+                                ? ParseBrush(m.FillColor, Brushes.Transparent)
+                                : CloneBrush(Brushes.Transparent)
                         };
                         foreach (var p in m.Points)
                             polygon.Points.Add(p);
@@ -1423,6 +1663,31 @@ namespace PaintApplication.ViewModels
                         Canvas.SetLeft(textBlock, m.X);
                         Canvas.SetTop(textBlock, m.Y);
                         Shapes.Add(textBlock);
+                        break;
+
+                    case ShapeType.Image:
+                        if (m.ImageData != null && m.ImageData.Length > 0)
+                        {
+                            using var ms = new MemoryStream(m.ImageData);
+                            var decoder = new PngBitmapDecoder(ms, BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.OnLoad);
+                            var frame = decoder.Frames[0];
+                            frame.Freeze();
+
+                            var image = new Image
+                            {
+                                Source = frame,
+                                Stretch = Stretch.None
+                            };
+
+                            if (m.Width > 0)
+                                image.Width = m.Width;
+                            if (m.Height > 0)
+                                image.Height = m.Height;
+
+                            Canvas.SetLeft(image, m.X);
+                            Canvas.SetTop(image, m.Y);
+                            Shapes.Add(image);
+                        }
                         break;
                 }
             }
