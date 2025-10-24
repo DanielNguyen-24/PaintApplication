@@ -1,10 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "JVB0ilczEGw=",
+  "dgSpecHash": "3zjmIoJ3zTI=",
   "success": true,
-  "projectFilePath": "D:\\Coding Space\\Project\\PaintApplication\\PaintApplication\\PaintApplication.csproj",
+  "projectFilePath": "C:\\Users\\nqdat\\Downloads\\PaintApplication\\PaintApplication\\PaintApplication\\PaintApplication.csproj",
   "expectedPackageFiles": [
-    "C:\\Users\\Admin\\.nuget\\packages\\extended.wpf.toolkit\\4.7.25104.5739\\extended.wpf.toolkit.4.7.25104.5739.nupkg.sha512"
+    "C:\\Users\\nqdat\\.nuget\\packages\\extended.wpf.toolkit\\4.7.25104.5739\\extended.wpf.toolkit.4.7.25104.5739.nupkg.sha512"
   ],
   "logs": []
 }

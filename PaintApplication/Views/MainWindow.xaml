@@ -4,7 +4,7 @@
         xmlns:ribbon="clr-namespace:System.Windows.Controls.Ribbon;assembly=System.Windows.Controls.Ribbon"
         xmlns:vm="clr-namespace:PaintApplication.ViewModels"
         xmlns:views="clr-namespace:PaintApplication.Views"
-        Title="Paint Application"
+        Title="Paint Application" 
         Height="700" Width="1100"
         WindowStartupLocation="CenterScreen">
 
