@@ -1734,7 +1734,6 @@ namespace PaintApplication.ViewModels
             Shapes.Add(marker);
         }
 
-
         private void StartNaturalPencil(Point pos, Color color, double size)
         {
             for (int i = 0; i < 3; i++)

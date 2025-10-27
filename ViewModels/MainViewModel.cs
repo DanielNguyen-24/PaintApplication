@@ -1,4 +1,4 @@
-﻿giải using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using PaintApplication.Helpers;
 using PaintApplication.Services;
 using System.Windows.Input;
