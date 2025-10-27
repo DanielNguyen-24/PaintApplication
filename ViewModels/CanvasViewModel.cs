@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -1420,54 +1421,111 @@ namespace PaintApplication.ViewModels
             int index = (y * width + x) * 4;
             Color targetColor = Color.FromArgb(pixels[index + 3], pixels[index + 2], pixels[index + 1], pixels[index]);
 
-            if (targetColor == newColor) return;
+            // Nếu màu giống nhau thì không cần fill
+            if (ColorsAreEqual(targetColor, newColor)) return;
 
-            // BFS queue cho flood fill
-            Queue<Point> queue = new();
-            queue.Enqueue(new Point(x, y));
+            // Tạo mảng để đánh dấu pixel đã visit
+            bool[,] visited = new bool[width, height];
+            List<Point> fillPixels = new List<Point>();
+            
+            // Stack-based flood fill để tránh stack overflow
+            Stack<Point> stack = new Stack<Point>();
+            stack.Push(new Point(x, y));
 
-            while (queue.Count > 0)
+            while (stack.Count > 0)
             {
-                var p = queue.Dequeue();
-                int px = (int)p.X;
-                int py = (int)p.Y;
+                var current = stack.Pop();
+                int px = (int)current.X;
+                int py = (int)current.Y;
 
+                // Kiểm tra boundary
                 if (px < 0 || px >= width || py < 0 || py >= height) continue;
+                if (visited[px, py]) continue;
 
+                // Lấy màu của pixel hiện tại
                 int idx = (py * width + px) * 4;
-                Color c = Color.FromArgb(pixels[idx + 3], pixels[idx + 2], pixels[idx + 1], pixels[idx]);
+                Color currentColor = Color.FromArgb(pixels[idx + 3], pixels[idx + 2], pixels[idx + 1], pixels[idx]);
 
-                if (c != targetColor) continue;
+                // Nếu màu không khớp với màu target thì skip
+                if (!ColorsAreEqual(currentColor, targetColor)) continue;
 
-                // Đổi pixel thành màu mới
-                pixels[idx] = newColor.B;
-                pixels[idx + 1] = newColor.G;
-                pixels[idx + 2] = newColor.R;
-                pixels[idx + 3] = newColor.A;
+                // Đánh dấu đã visit và thêm vào danh sách fill
+                visited[px, py] = true;
+                fillPixels.Add(current);
 
-                // Thêm neighbor
-                queue.Enqueue(new Point(px + 1, py));
-                queue.Enqueue(new Point(px - 1, py));
-                queue.Enqueue(new Point(px, py + 1));
-                queue.Enqueue(new Point(px, py - 1));
+                // Thêm các điểm kề vào stack (4-connectivity)
+                stack.Push(new Point(px + 1, py));
+                stack.Push(new Point(px - 1, py));
+                stack.Push(new Point(px, py + 1));
+                stack.Push(new Point(px, py - 1));
             }
 
-            // Tạo WriteableBitmap kết quả
-            var wb = new WriteableBitmap(width, height, 96, 96, PixelFormats.Pbgra32, null);
-            wb.WritePixels(new Int32Rect(0, 0, width, height), pixels, stride, 0);
+            if (fillPixels.Count == 0) return;
 
-            // Thay thế Shapes bằng 1 Image (bitmap mới)
-            Shapes.Clear();
-            var image = new Image
-            {
-                Source = wb,
-                Width = width,
-                Height = height
-            };
-            Canvas.SetLeft(image, 0);
-            Canvas.SetTop(image, 0);
-            Shapes.Add(image);
+            // Tạo một shape fill mới thay vì thay thế toàn bộ canvas
+            CreateFillShape(fillPixels, newColor);
+            
             ClearSelection();
+        }
+
+        private bool ColorsAreEqual(Color color1, Color color2, int tolerance = 10)
+        {
+            return Math.Abs(color1.A - color2.A) <= tolerance &&
+                   Math.Abs(color1.R - color2.R) <= tolerance &&
+                   Math.Abs(color1.G - color2.G) <= tolerance &&
+                   Math.Abs(color1.B - color2.B) <= tolerance;
+        }
+
+        private void CreateFillShape(List<Point> fillPixels, Color fillColor)
+        {
+            if (fillPixels.Count == 0) return;
+
+            // Tìm bounding box của vùng fill
+            int minX = (int)fillPixels.Min(p => p.X);
+            int maxX = (int)fillPixels.Max(p => p.X);
+            int minY = (int)fillPixels.Min(p => p.Y);
+            int maxY = (int)fillPixels.Max(p => p.Y);
+
+            int width = maxX - minX + 1;
+            int height = maxY - minY + 1;
+
+            // Tạo bitmap trong suốt cho vùng fill
+            var bitmap = new WriteableBitmap(width, height, 96, 96, PixelFormats.Pbgra32, null);
+            int stride = width * 4;
+            byte[] bitmapPixels = new byte[height * stride];
+
+            // Fill các pixel được chọn
+            foreach (var point in fillPixels)
+            {
+                int x = (int)point.X - minX;
+                int y = (int)point.Y - minY;
+                
+                if (x >= 0 && x < width && y >= 0 && y < height)
+                {
+                    int idx = (y * width + x) * 4;
+                    bitmapPixels[idx] = fillColor.B;     // Blue
+                    bitmapPixels[idx + 1] = fillColor.G; // Green
+                    bitmapPixels[idx + 2] = fillColor.R; // Red
+                    bitmapPixels[idx + 3] = fillColor.A; // Alpha
+                }
+            }
+
+            bitmap.WritePixels(new Int32Rect(0, 0, width, height), bitmapPixels, stride, 0);
+
+            // Tạo Image cho vùng fill và thêm vào canvas
+            var fillImage = new Image
+            {
+                Source = bitmap,
+                Width = width,
+                Height = height,
+                Tag = "FillArea" // Tag để nhận biết đây là vùng fill
+            };
+            
+            Canvas.SetLeft(fillImage, minX);
+            Canvas.SetTop(fillImage, minY);
+            
+            // Thêm vào vị trí thích hợp trong Shapes (dưới các shape khác)
+            Shapes.Insert(0, fillImage);
         }
 
         // Helper: shapes handling split-out để code gọn
