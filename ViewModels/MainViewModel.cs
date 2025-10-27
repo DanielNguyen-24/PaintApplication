@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+﻿giải using System.Collections.ObjectModel;
 using PaintApplication.Helpers;
 using PaintApplication.Services;
 using System.Windows.Input;
@@ -10,7 +10,6 @@ namespace PaintApplication.ViewModels
     {
         public ToolboxViewModel Toolbox { get; }
         public CanvasViewModel Canvas { get; }
-        public ObservableCollection<LayerViewModel> Layers { get; } = new();
 
         // Zoom
         private double _zoomLevel = 100;
@@ -34,6 +33,8 @@ namespace PaintApplication.ViewModels
         public MainViewModel()
         {
             Toolbox = new ToolboxViewModel();
+            // allow toolbox to access main view-model for windows like Shapes panel
+            Toolbox.Main = this;
             Canvas = new CanvasViewModel(Toolbox);
             Toolbox.Canvas = Canvas;
             Canvas.ZoomRequested += delta => ChangeZoom(delta);
@@ -56,7 +57,6 @@ namespace PaintApplication.ViewModels
         private void DoNewFile()
         {
             Canvas.Shapes.Clear();
-            Layers.Clear();
             Canvas.ClearSelection();
             ZoomLevel = 100;
         }
@@ -98,6 +98,7 @@ namespace PaintApplication.ViewModels
             if (newZoom < 10) newZoom = 10;
             if (newZoom > 400) newZoom = 400;
             ZoomLevel = newZoom;
+            System.Diagnostics.Debug.WriteLine($"Zoom changed to: {ZoomLevel}%");
         }
     }
 }

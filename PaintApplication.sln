@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.13.35931.197 d17.13
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PaintApplication", "PaintApplication\PaintApplication.csproj", "{20CF1EF5-9DA3-4567-ABD7-162756E5E084}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PaintApplication", "PaintApplication.csproj", "{20CF1EF5-9DA3-4567-ABD7-162756E5E084}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -4,57 +4,198 @@
         xmlns:vm="clr-namespace:PaintApplication.ViewModels"
         xmlns:views="clr-namespace:PaintApplication.Views"
         Title="Paint Application"
-        Height="700" Width="1100"
-        WindowStartupLocation="CenterScreen">
+        Height="800" Width="1200"
+        WindowStartupLocation="CenterScreen"
+        Background="#F5F5F5"
+        FontFamily="Segoe UI"
+        FontSize="12">
 
     <Window.DataContext>
         <vm:MainViewModel />
     </Window.DataContext>
 
-    <DockPanel>
-        <!-- Menu -->
-        <Menu DockPanel.Dock="Top">
-            <Menu.Resources>
-                <Style TargetType="MenuItem">
-                    <Setter Property="Padding" Value="8,4" />
-                </Style>
-                <Style TargetType="Separator">
-                    <Setter Property="Margin" Value="0,2" />
-                </Style>
-            </Menu.Resources>
+    <Window.Resources>
+        <!-- Color Palette -->
+        <Color x:Key="PrimaryColor">#2196F3</Color>
+        <Color x:Key="SecondaryColor">#1976D2</Color>
+        <Color x:Key="BackgroundColor">#F5F5F5</Color>
+        <Color x:Key="SurfaceColor">#FFFFFF</Color>
+        <Color x:Key="TextPrimaryColor">#212121</Color>
+        <Color x:Key="TextSecondaryColor">#757575</Color>
+        <Color x:Key="DividerColor">#BDBDBD</Color>
+
+        <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource PrimaryColor}" />
+        <SolidColorBrush x:Key="SecondaryBrush" Color="{StaticResource SecondaryColor}" />
+        <SolidColorBrush x:Key="BackgroundBrush" Color="{StaticResource BackgroundColor}" />
+        <SolidColorBrush x:Key="SurfaceBrush" Color="{StaticResource SurfaceColor}" />
+        <SolidColorBrush x:Key="TextPrimaryBrush" Color="{StaticResource TextPrimaryColor}" />
+        <SolidColorBrush x:Key="TextSecondaryBrush" Color="{StaticResource TextSecondaryColor}" />
+        <SolidColorBrush x:Key="DividerBrush" Color="{StaticResource DividerColor}" />
+
+        <!-- Menu Style -->
+        <Style TargetType="Menu">
+            <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource DividerBrush}" />
+            <Setter Property="BorderThickness" Value="0,0,0,1" />
+            <Setter Property="Padding" Value="8,4" />
+        </Style>
+
+        <!-- MenuItem Style -->
+        <Style TargetType="MenuItem">
+            <Setter Property="Padding" Value="12,8" />
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+            <Setter Property="Background" Value="Transparent" />
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#E3F2FD" />
+                </Trigger>
+                <Trigger Property="IsHighlighted" Value="True">
+                    <Setter Property="Background" Value="#BBDEFB" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- StatusBar Style -->
+        <Style TargetType="StatusBar">
+            <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource DividerBrush}" />
+            <Setter Property="BorderThickness" Value="0,1,0,0" />
+            <Setter Property="Padding" Value="12,6" />
+        </Style>
+
+        <!-- Button Style for Zoom -->
+        <Style TargetType="Button" x:Key="ZoomButtonStyle">
+            <Setter Property="Background" Value="{StaticResource PrimaryBrush}" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border"
+                                Background="{TemplateBinding Background}" 
+                                CornerRadius="4"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{StaticResource SecondaryBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Opacity" Value="0.8" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="border" Property="Opacity" Value="0.5" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <!-- Keyboard shortcuts: New/Open/Save/Undo/Redo and Zoom -->
+    <Window.InputBindings>
+        <KeyBinding Key="N" Modifiers="Control" Command="{Binding NewFileCommand}" />
+        <KeyBinding Key="O" Modifiers="Control" Command="{Binding OpenFileCommand}" />
+        <KeyBinding Key="S" Modifiers="Control" Command="{Binding SaveFileCommand}" />
+        <KeyBinding Key="Z" Modifiers="Control" Command="{Binding UndoCommand}" />
+        <KeyBinding Key="Y" Modifiers="Control" Command="{Binding RedoCommand}" />
+        <!-- Zoom with keyboard: Ctrl + Plus / Ctrl + Minus (covers main and numpad) -->
+        <KeyBinding Key="Add" Modifiers="Control" Command="{Binding ZoomInCommand}" />
+        <KeyBinding Key="OemPlus" Modifiers="Control" Command="{Binding ZoomInCommand}" />
+        <KeyBinding Key="Subtract" Modifiers="Control" Command="{Binding ZoomOutCommand}" />
+        <KeyBinding Key="OemMinus" Modifiers="Control" Command="{Binding ZoomOutCommand}" />
+        <!-- Optional: Ctrl+0 to reset zoom -->
+        <KeyBinding Key="D0" Modifiers="Control" Command="{Binding ResetZoomCommand}" />
+    </Window.InputBindings>
+
+    <DockPanel Background="{StaticResource BackgroundBrush}">
+        <!-- Menu Bar -->
+        <Menu DockPanel.Dock="Top" Height="44">
             <MenuItem Header="_File">
-                <MenuItem Header="_New" Command="{Binding NewFileCommand}" />
-                <MenuItem Header="_Open" Command="{Binding OpenFileCommand}" />
-                <MenuItem Header="_Save" Command="{Binding SaveFileCommand}" />
+                <MenuItem Header="_New" Command="{Binding NewFileCommand}" InputGestureText="Ctrl+N" />
+                <MenuItem Header="_Open" Command="{Binding OpenFileCommand}" InputGestureText="Ctrl+O" />
+                <MenuItem Header="_Save" Command="{Binding SaveFileCommand}" InputGestureText="Ctrl+S" />
                 <Separator />
-                <MenuItem Header="E_xit" Command="{Binding ExitCommand}" />
+                <MenuItem Header="E_xit" Command="{Binding ExitCommand}" InputGestureText="Alt+F4" />
             </MenuItem>
-            <MenuItem Header="_Edit">
-                <MenuItem Header="_Undo" Command="{Binding UndoCommand}" />
-                <MenuItem Header="_Redo" Command="{Binding RedoCommand}" />
-            </MenuItem>
+            <MenuItem Header="_Undo" Command="{Binding UndoCommand}" InputGestureText="Ctrl+Z"/>
+            <MenuItem Header="_Redo" Command="{Binding RedoCommand}" InputGestureText="Ctrl+Y"/>
         </Menu>
 
-        <!-- Toolbar -->
-        <views:ToolboxView DockPanel.Dock="Top"
-                           DataContext="{Binding Toolbox}" />
 
-        <!-- StatusBar (luôn dưới cùng, nằm ngang) -->
+
+        <!-- Toolbar Container -->
+        <Border DockPanel.Dock="Top" 
+                Background="{StaticResource SurfaceBrush}"
+                BorderBrush="{StaticResource DividerBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="0">
+            <views:ToolboxView DataContext="{Binding Toolbox}" />
+        </Border>
+
+        <!-- Status Bar -->
         <StatusBar DockPanel.Dock="Bottom">
-            <StatusBarItem>
-                <TextBlock Text="{Binding Canvas.MousePositionDisplay}" />
-            </StatusBarItem>
-            <Separator/>
-            <StatusBarItem>
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Content="-" Width="24" Margin="0,0,4,0" Command="{Binding ZoomOutCommand}" />
-                    <TextBlock Text="{Binding ZoomLevel, StringFormat='Zoom: {0}%'}" VerticalAlignment="Center" />
-                    <Button Content="+" Width="24" Margin="4,0,0,0" Command="{Binding ZoomInCommand}" />
+            <Grid Width="{Binding RelativeSource={RelativeSource AncestorType=StatusBar}, Path=ActualWidth}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition />
+                    <ColumnDefinition Width="Auto" MinWidth="230" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Left: Mouse Position -->
+                <TextBlock Grid.Column="0"
+                           Text="{Binding Canvas.MousePositionDisplay}"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           VerticalAlignment="Center"
+                           Margin="8,0,0,0" Height="16" />
+
+                <!-- Right: Zoom Controls -->
+                <StackPanel Grid.Column="1"
+                            Orientation="Horizontal"
+                            VerticalAlignment="Center"
+                            Margin="0,0,8,0" Height="28">
+                    <Button Content="−" 
+                            Width="28" Height="28"
+                            Margin="0,0,4,0"
+                            Style="{StaticResource ZoomButtonStyle}"
+                            Command="{Binding ZoomOutCommand}"
+                            ToolTip="Zoom Out (Ctrl+Mouse Wheel)" />
+                    <TextBlock Text="{Binding ZoomLevel, StringFormat='Zoom: {0:F0}%'}"
+                               Foreground="{StaticResource TextPrimaryBrush}"
+                               VerticalAlignment="Center"
+                               MinWidth="80"
+                               TextAlignment="Center"
+                               FontWeight="Medium" />
+                    <Button Content="+" 
+                            Width="28" Height="28"
+                            Margin="4,0,0,0"
+                            Style="{StaticResource ZoomButtonStyle}"
+                            Command="{Binding ZoomInCommand}"
+                            ToolTip="Zoom In (Ctrl+Mouse Wheel)" />
+                    <Button Content="Reset" 
+                            Padding="8,4"
+                            Margin="4,0,0,0"
+                            Style="{StaticResource ZoomButtonStyle}"
+                            Command="{Binding ResetZoomCommand}"
+                            ToolTip="Reset Zoom to 100%" />
                 </StackPanel>
-            </StatusBarItem>
+            </Grid>
         </StatusBar>
 
-        <!-- Canvas chiếm phần giữa -->
-        <views:CanvasView DataContext="{Binding Canvas}" ZoomLevel="{Binding ZoomLevel, Mode=TwoWay}" />
+        <!-- Main Canvas Area -->
+        <Border Background="{StaticResource BackgroundBrush}"
+                Padding="0">
+            <!-- CanvasView keeps its DataContext as the Canvas view-model, but ZoomLevel is bound
+                 explicitly to the Window (MainViewModel) ZoomLevel so commands from the shell
+                 (zoom buttons, keyboard shortcuts) update the visible canvas scale. -->
+            <views:CanvasView DataContext="{Binding Canvas}" 
+                             ZoomLevel="{Binding DataContext.ZoomLevel, RelativeSource={RelativeSource AncestorType=Window}, Mode=TwoWay}" />
+        </Border>
     </DockPanel>
 </Window>

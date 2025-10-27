@@ -1,0 +1,30 @@
+<Window x:Class="PaintApplication.Views.LayersWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Shapes" Height="500" Width="320" WindowStartupLocation="CenterOwner">
+    <DockPanel Margin="8">
+        <TextBlock DockPanel.Dock="Top" Text="All Shapes" FontSize="14" FontWeight="Bold" Margin="0,0,0,8"/>
+        
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
+            <Button Content="Delete" Width="70" Margin="0,0,4,0" Click="DeleteShape_Click" />
+            <Button Content="Bring to Front" Width="100" Margin="0,0,4,0" Click="BringToFront_Click" />
+            <Button Content="Send to Back" Width="100" Click="SendToBack_Click" />
+        </StackPanel>
+
+        <!-- Shapes ListBox showing all shapes from Canvas -->
+        <ListBox x:Name="ShapesListBox" ItemsSource="{Binding Canvas.Shapes}" SelectionChanged="ShapesListBox_SelectionChanged">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel Orientation="Horizontal" Margin="2">
+                        <Border Width="40" Height="40" BorderBrush="Gray" BorderThickness="1" Margin="0,0,8,0" Background="White">
+                            <Viewbox Stretch="Uniform">
+                                <ContentPresenter Content="{Binding}" />
+                            </Viewbox>
+                        </Border>
+                        <TextBlock Text="{Binding Tag}" VerticalAlignment="Center" FontSize="12"/>
+                    </StackPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+    </DockPanel>
+</Window>

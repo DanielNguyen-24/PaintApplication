@@ -13,6 +13,31 @@ namespace PaintApplication.Models
         // Dùng enum từ Enums.cs
         public ShapeType ShapeType { get; set; }
 
+        private bool _isSelected;
+        public bool IsSelected
+        {
+            get => _isSelected;
+            set => SetProperty(ref _isSelected, value);
+        }
+
+        public string DisplayName => ShapeType switch
+        {
+            ShapeType.Line => "Line",
+            ShapeType.Rectangle => "Rectangle",
+            ShapeType.Ellipse => "Circle/Ellipse",
+            ShapeType.Triangle => "Triangle",
+            ShapeType.Star => "Star",
+            ShapeType.Pentagon => "Pentagon",
+            ShapeType.Hexagon => "Hexagon",
+            ShapeType.Diamond => "Diamond",
+            ShapeType.Heart => "Heart",
+            ShapeType.Cloud => "Cloud",
+            ShapeType.Lightning => "Lightning",
+            ShapeType.Text => $"Text: {Text?.Substring(0, Math.Min(20, Text?.Length ?? 0)) ?? ""}",
+            ShapeType.Freeform => "Pencil/Brush Stroke",
+            _ => "Shape"
+        };
+
         public Geometry? Geometry { get; set; }
 
         private double _x;

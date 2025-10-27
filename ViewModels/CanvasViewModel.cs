@@ -1228,8 +1228,11 @@ namespace PaintApplication.ViewModels
             return new Rect(left, top, elementWidth, elementHeight);
         }
 
-        private void RenderElements(DrawingContext dc)
+        private void RenderElements(DrawingContext dc, int width, int height)
         {
+            // Vẽ nền trắng trước
+            dc.DrawRectangle(Brushes.White, null, new Rect(0, 0, width, height));
+            
             foreach (var element in Shapes)
             {
                 if (element is not UIElement uiElement)
@@ -1265,7 +1268,7 @@ namespace PaintApplication.ViewModels
             var dv = new DrawingVisual();
             using (var dc = dv.RenderOpen())
             {
-                RenderElements(dc);
+                RenderElements(dc, width, height);
             }
             rtb.Render(dv);
             return rtb;

@@ -10,6 +10,8 @@ namespace PaintApplication.ViewModels
 {
     public class ToolboxViewModel : ViewModelBase
     {
+        // Reference to MainViewModel (set by MainViewModel constructor)
+        public MainViewModel? Main { get; set; }
         private ToolType _selectedTool = ToolType.Pencil;
         public ToolType SelectedTool
         {
@@ -212,6 +214,19 @@ namespace PaintApplication.ViewModels
         }
         public void DoOpenColorPicker() { /* mở popup chọn màu */ }
         public void DoAI() { /* gọi AI */ }
-        public void DoLayers() { /* quản lý layers */ }
+        public void DoLayers()
+        {
+            // Open a Paint-style Shapes panel showing all canvas shapes
+            if (Main == null)
+                return;
+
+            var win = new Views.LayersWindow
+            {
+                DataContext = Main,
+                Title = "Shapes"
+            };
+            win.Owner = System.Windows.Application.Current?.MainWindow;
+            win.Show();
+        }
     }
 }

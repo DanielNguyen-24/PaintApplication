@@ -34,7 +34,18 @@ namespace PaintApplication.Views
             InitializeComponent();
             DataContextChanged += CanvasView_DataContextChanged;
             Loaded += CanvasView_Loaded;
+            MouseWheel += CanvasView_MouseWheel;
             UpdateZoom();
+        }
+
+        private void CanvasView_MouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            if (Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                double delta = e.Delta > 0 ? 10 : -10;
+                ZoomLevel = Math.Clamp(ZoomLevel + delta, 10, 400);
+                e.Handled = true;
+            }
         }
 
         private static void OnZoomLevelChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
@@ -52,6 +63,11 @@ namespace PaintApplication.Views
                 double scale = Math.Max(0.1, ZoomLevel / 100.0);
                 PART_ScaleTransform.ScaleX = scale;
                 PART_ScaleTransform.ScaleY = scale;
+                System.Diagnostics.Debug.WriteLine($"UpdateZoom: ZoomLevel={ZoomLevel}%, Scale={scale}");
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("UpdateZoom: PART_ScaleTransform is null!");
             }
         }
 
@@ -67,7 +83,11 @@ namespace PaintApplication.Views
             PART_Canvas.SizeChanged -= PartCanvas_SizeChanged;
             PART_Canvas.SizeChanged += PartCanvas_SizeChanged;
 
-            UpdateZoom();
+            // Ensure zoom is applied after all controls are loaded
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                UpdateZoom();
+            }), DispatcherPriority.Loaded);
         }
 
         private void CanvasView_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
